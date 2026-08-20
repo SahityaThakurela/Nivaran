@@ -1,14 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
-// NOTE: PostGIS and pgvector must be enabled on the Postgres instance itself
-// (Supabase: Database -> Extensions -> enable "postgis" and "vector") before
-// running migrations. Prisma deprecated declaring extensions in the schema
-// file, so this is a one-time manual step, not something Prisma manages.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [pg_stat_statements, pgcrypto, postgis, supabase_vault, uuid_ossp(map: "uuid-ossp"), vector]
 }
 
 enum UserRole {
