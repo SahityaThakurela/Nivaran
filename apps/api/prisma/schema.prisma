@@ -1,0 +1,175 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// NOTE: PostGIS and pgvector must be enabled on the Postgres instance itself
+// (Supabase: Database -> Extensions -> enable "postgis" and "vector") before
+// running migrations. Prisma deprecated declaring extensions in the schema
+// file, so this is a one-time manual step, not something Prisma manages.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  CITIZEN
+  FIELD_WORKER
+  DEPARTMENT_OPERATOR
+  MUNICIPAL_ADMIN
+  SUPER_ADMIN
+}
+
+enum ReportCategory {
+  ROADS
+  SANITATION
+  WATER_SUPPLY
+  ELECTRICITY
+  DRAINAGE
+  STREETLIGHT
+  PUBLIC_SAFETY
+  PARKS_AND_TREES
+  STRAY_ANIMALS
+  OTHER
+}
+
+// Priority scoring maps these to plain numbers: LOW=1, MEDIUM=2, HIGH=3,
+// CRITICAL=4. That number is one input (alongside AI confidence, report age,
+// etc.) to the weighted-arithmetic priorityScore on Report — no AI involved
+// in the scoring itself, only in producing this severity label.
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ReportStatus {
+  SUBMITTED
+  ACKNOWLEDGED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+  DUPLICATE
+}
+
+model City {
+  id    String @id @default(cuid())
+  name  String
+  state String
+
+  users       User[]
+  departments Department[]
+  reports     Report[]
+
+  @@unique([name, state])
+}
+
+// One department per category per city — this is how a classified report
+// auto-routes to the right team (e.g. ROADS -> "Roads Dept, Pune").
+model Department {
+  id       String         @id @default(cuid())
+  name     String
+  category ReportCategory
+  cityId   String
+  city     City           @relation(fields: [cityId], references: [id])
+
+  users   User[]
+  reports Report[]
+
+  @@unique([cityId, category])
+}
+
+model User {
+  id           String      @id @default(cuid())
+  name         String
+  email        String?     @unique
+  phone        String?     @unique
+  passwordHash String?
+  role         UserRole    @default(CITIZEN)
+
+  // Scope for RBAC: null for SUPER_ADMIN (sees everything), set for everyone else.
+  cityId       String?
+  city         City?       @relation(fields: [cityId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  reportsSubmitted Report[]            @relation("ReportedBy")
+  reportsAssigned  Report[]            @relation("AssignedTo")
+  statusEvents     ReportStatusEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id String @id @default(cuid())
+
+  // Citizen-submitted
+  description String
+  photoUrls   String[]
+  address     String?
+  latitude    Float
+  longitude   Float
+  // Real geography column, used only for ST_DWithin radius queries
+  // (duplicate detection). Read/written via raw SQL, not the normal
+  // Prisma client, since it's an Unsupported type.
+  location Unsupported("geography(Point, 4326)")
+
+  // AI classification (single hosted LLM call, strict JSON output)
+  category     ReportCategory
+  severity     Severity
+  aiSummary    String
+  aiConfidence Float
+
+  // Plain weighted-arithmetic score (severity + confidence + age etc.), not AI
+  priorityScore Float @default(0)
+
+  status ReportStatus @default(SUBMITTED)
+
+  // Duplicate detection via pgvector cosine similarity
+  embedding     Unsupported("vector(768)")?
+  isDuplicate   Boolean  @default(false)
+  duplicateOfId String?
+  duplicateOf   Report?  @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
+  duplicates    Report[] @relation("DuplicateOf")
+
+  // Field worker's proof of completion, kept separate from the citizen's
+  // original submission photos.
+  resolutionEvidenceUrls String[]
+
+  // Citizen's post-resolution confirm/reopen response
+  feedbackRating  Int?
+  feedbackComment String?
+
+  cityId       String
+  city         City        @relation(fields: [cityId], references: [id])
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  reportedById String
+  reportedBy   User    @relation("ReportedBy", fields: [reportedById], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
+
+  statusEvents ReportStatusEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cityId, status])
+  @@index([departmentId, status])
+}
+
+// Audit trail — every status change is logged, not overwritten. Also what
+// powers the "track status" timeline in the mobile app.
+model ReportStatusEvent {
+  id          String       @id @default(cuid())
+  reportId    String
+  report      Report       @relation(fields: [reportId], references: [id])
+  status      ReportStatus
+  note        String?
+  changedById String
+  changedBy   User         @relation(fields: [changedById], references: [id])
+  createdAt   DateTime     @default(now())
+}

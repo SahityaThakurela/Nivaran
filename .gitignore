@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+.next/
+.expo/
+.turbo/
+
+# Env files (never commit real secrets/connection strings)
+.env
+.env.*.local
+
+# Prisma
+apps/api/prisma/migrations/dev.db
+
+# Misc
+.DS_Store
+*.log
