@@ -1,9 +1,14 @@
-// Placeholder for the hosted multimodal-LLM classification step (built as
-// its own module later). A freshly created Report is SUBMITTED with
-// category/severity/aiSummary/aiConfidence all null; this is where they'd
-// get filled in. For now it just logs, so POST /api/issues already calls
-// it fire-and-forget and nothing has to change here once the real
-// implementation lands.
+import { classifyAndUpdateReport } from "./ai/classify";
+
+// Called fire-and-forget from POST /api/issues right after a report is
+// created. Errors are caught here (not re-thrown) since nothing is awaiting
+// this — a failed classification should never crash the request that
+// triggered it, and classifyAndUpdateReport already falls back to the
+// keyword classifier before this would even be reached.
 export async function enqueueClassification(reportId: string): Promise<void> {
-  console.log(`[classification] TODO: classify report ${reportId} via hosted LLM`);
+  try {
+    await classifyAndUpdateReport(reportId);
+  } catch (error) {
+    console.error(`[classification] Failed to classify report ${reportId}:`, error);
+  }
 }
