@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import { prisma } from "./lib/prisma";
 import { authRouter } from "./routes/auth.routes";
+import { issueRouter } from "./routes/issue.routes";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -23,6 +24,7 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/issues", issueRouter);
 
 // Express 5 forwards rejected promises from async route handlers here
 // automatically, so this catches anything a route didn't handle itself

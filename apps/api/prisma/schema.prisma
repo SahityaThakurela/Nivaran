@@ -111,15 +111,19 @@ model Report {
   latitude    Float
   longitude   Float
   // Real geography column, used only for ST_DWithin radius queries
-  // (duplicate detection). Read/written via raw SQL, not the normal
-  // Prisma client, since it's an Unsupported type.
-  location Unsupported("geography(Point, 4326)")
+  // (duplicate detection). Nullable + populated via raw SQL right after
+  // creation, because Prisma Client can't assign Unsupported-type fields
+  // itself — a required Unsupported field with no default would silently
+  // remove `create()` from this model entirely.
+  location Unsupported("geography(Point, 4326)")?
 
-  // AI classification (single hosted LLM call, strict JSON output)
-  category     ReportCategory
-  severity     Severity
-  aiSummary    String
-  aiConfidence Float
+  // AI classification (single hosted LLM call, strict JSON output). All
+  // nullable because a freshly SUBMITTED report is created before the
+  // classification job runs — these get filled in once it completes.
+  category     ReportCategory?
+  severity     Severity?
+  aiSummary    String?
+  aiConfidence Float?
 
   // Plain weighted-arithmetic score (severity + confidence + age etc.), not AI
   priorityScore Float @default(0)
