@@ -5,6 +5,7 @@ import { authenticate } from "../middleware/authenticate";
 import { requireRole, requireScope } from "../middleware/rbac";
 import { enqueueClassification } from "../services/classification";
 import { findDuplicateCandidates } from "../services/duplicateDetection";
+import { recalculatePriorityScore } from "../services/priorityScore";
 
 export const issueRouter = Router();
 
@@ -184,6 +185,13 @@ issueRouter.patch("/:id", requireRole(...STAFF_ROLES), requireScope(), async (re
         changedById: req.user!.sub,
       },
     });
+  }
+
+  // Linking this report as a duplicate means the *original* just gained a
+  // supporting report — its priority score factors in duplicate count, so
+  // it needs recomputing too.
+  if (duplicateOfId !== undefined && duplicateOfId !== null) {
+    await recalculatePriorityScore(duplicateOfId);
   }
 
   res.json({ report });

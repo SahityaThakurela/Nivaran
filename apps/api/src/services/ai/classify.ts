@@ -2,6 +2,7 @@ import { prisma } from "../../lib/prisma";
 import { callGemini } from "./geminiClient";
 import { classifyByKeyword } from "./keywordFallback";
 import { generateEmbedding } from "./embeddings";
+import { recalculatePriorityScore } from "../priorityScore";
 import { ClassificationSchema, classificationJsonSchema, type ClassificationResult } from "./schema";
 
 const PROMPT_PREFIX = `You are a triage assistant for a municipal civic-issue reporting platform.
@@ -42,7 +43,7 @@ export async function classifyAndUpdateReport(reportId: string) {
   const report = await prisma.report.findUniqueOrThrow({ where: { id: reportId } });
   const result = await classifyReportWithAI(report.description, report.photoUrls);
 
-  const updated = await prisma.report.update({
+  await prisma.report.update({
     where: { id: reportId },
     data: {
       category: result.category,
@@ -62,5 +63,7 @@ export async function classifyAndUpdateReport(reportId: string) {
     `;
   }
 
-  return updated;
+  // Severity/confidence just changed, so priority needs recomputing too —
+  // this is the final write, so its return value has every field current.
+  return recalculatePriorityScore(reportId);
 }
