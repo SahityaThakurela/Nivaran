@@ -1,6 +1,7 @@
 import { prisma } from "../../lib/prisma";
 import { callGemini } from "./geminiClient";
 import { classifyByKeyword } from "./keywordFallback";
+import { generateEmbedding } from "./embeddings";
 import { ClassificationSchema, classificationJsonSchema, type ClassificationResult } from "./schema";
 
 const PROMPT_PREFIX = `You are a triage assistant for a municipal civic-issue reporting platform.
@@ -32,13 +33,16 @@ export async function classifyReportWithAI(
 }
 
 // Classifies a report by id and writes the result straight back onto it.
+// Also generates its description embedding here — this is the one place
+// that "enriches" a report after creation, and duplicate detection (a
+// later step) needs that embedding to exist before it can run.
 // Shared by POST /api/ai/analyze-report and the fire-and-forget call from
 // POST /api/issues.
 export async function classifyAndUpdateReport(reportId: string) {
   const report = await prisma.report.findUniqueOrThrow({ where: { id: reportId } });
   const result = await classifyReportWithAI(report.description, report.photoUrls);
 
-  return prisma.report.update({
+  const updated = await prisma.report.update({
     where: { id: reportId },
     data: {
       category: result.category,
@@ -47,4 +51,16 @@ export async function classifyAndUpdateReport(reportId: string) {
       aiConfidence: result.confidence,
     },
   });
+
+  const embedding = await generateEmbedding(report.description);
+  if (embedding) {
+    // `embedding` is an Unsupported pgvector column — same reason `location`
+    // is written via raw SQL rather than through the normal Prisma client.
+    const vectorLiteral = `[${embedding.join(",")}]`;
+    await prisma.$executeRaw`
+      UPDATE "Report" SET embedding = ${vectorLiteral}::vector WHERE id = ${reportId}
+    `;
+  }
+
+  return updated;
 }
