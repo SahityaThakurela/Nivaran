@@ -116,7 +116,7 @@ export function ReportDetailsScreen() {
                 {address ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
               </Text>
             </View>
-            <Pressable onPress={() => undefined}>
+            <Pressable onPress={() => navigation.goBack()}>
               <Text style={styles.adjust}>Adjust Map</Text>
             </Pressable>
           </View>
