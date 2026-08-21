@@ -1,0 +1,66 @@
+import { apiClient } from "./client";
+import type { Report, ReportCategory, ReportStatus } from "./types";
+
+export type CreateIssueInput = {
+  description: string;
+  cityId: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  photoUrls?: string[];
+};
+
+export type ListIssuesQuery = {
+  status?: ReportStatus;
+  category?: ReportCategory;
+};
+
+type ReportsResponse = {
+  reports: Report[];
+};
+
+type ReportResponse = {
+  report: Report;
+};
+
+export async function listIssues(
+  token: string,
+  query?: ListIssuesQuery,
+): Promise<Report[]> {
+  const params = new URLSearchParams();
+  if (query?.status) params.set("status", query.status);
+  if (query?.category) params.set("category", query.category);
+  const qs = params.toString();
+  const data = await apiClient<ReportsResponse>(
+    `/api/issues${qs ? `?${qs}` : ""}`,
+    { method: "GET", token },
+  );
+  return data.reports;
+}
+
+export async function getIssue(token: string, id: string): Promise<Report> {
+  const data = await apiClient<ReportResponse>(`/api/issues/${id}`, {
+    method: "GET",
+    token,
+  });
+  return data.report;
+}
+
+export async function createIssue(
+  token: string,
+  input: CreateIssueInput,
+): Promise<Report> {
+  const data = await apiClient<ReportResponse>("/api/issues", {
+    method: "POST",
+    token,
+    body: {
+      description: input.description,
+      cityId: input.cityId,
+      latitude: input.latitude,
+      longitude: input.longitude,
+      address: input.address,
+      photoUrls: input.photoUrls,
+    },
+  });
+  return data.report;
+}
