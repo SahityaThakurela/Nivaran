@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ReportCategory, Severity } from "@prisma/client";
 
 // Single source of truth: Prisma's generated enums drive both the runtime
-// validation (Zod) below and the JSON Schema we hand to Gemini, so the two
+// validation (Zod) below and the JSON Schema we hand to OpenRouter, so the two
 // can never drift out of sync with each other or with the database.
 export const ClassificationSchema = z.object({
   category: z.enum(ReportCategory),
@@ -13,7 +13,7 @@ export const ClassificationSchema = z.object({
 
 export type ClassificationResult = z.infer<typeof ClassificationSchema>;
 
-// Same shape, expressed as a JSON Schema for Gemini's structured-output mode.
+// Same shape, expressed as a JSON Schema for OpenRouter structured output.
 export const classificationJsonSchema = {
   type: "object",
   properties: {

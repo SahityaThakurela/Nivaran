@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { callGemini } from "./geminiClient";
+import { callOpenRouter } from "./openRouterClient";
 import { classifyByKeyword } from "./keywordFallback";
 import { generateEmbedding } from "./embeddings";
 import { recalculatePriorityScore } from "../priorityScore";
@@ -24,11 +24,11 @@ export async function classifyReportWithAI(
   photoUrls: string[],
 ): Promise<ClassificationOutcome> {
   try {
-    const raw = await callGemini(PROMPT_PREFIX + description, photoUrls, classificationJsonSchema);
+    const raw = await callOpenRouter(PROMPT_PREFIX + description, photoUrls, classificationJsonSchema);
     const parsed = ClassificationSchema.parse(raw);
     return { ...parsed, method: "llm" };
   } catch (error) {
-    console.error("[ai] Gemini classification failed, falling back to keyword classifier:", error);
+    console.error("[ai] OpenRouter classification failed, falling back to keyword classifier:", error);
     return { ...classifyByKeyword(description), method: "keyword-fallback" };
   }
 }

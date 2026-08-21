@@ -2,17 +2,18 @@
 // one, change the other.
 export const EMBEDDING_DIMENSIONS = 768;
 
-const EMBEDDING_MODEL = process.env.GEMINI_EMBEDDING_MODEL ?? "gemini-embedding-2";
-const EMBEDDING_URL = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent`;
+const EMBEDDING_URL = "https://openrouter.ai/api/v1/embeddings";
+const EMBEDDING_MODEL =
+  process.env.OPENROUTER_EMBEDDING_MODEL ?? "openai/text-embedding-3-small";
 
 // Returns a 768-dim embedding for the given text, or null if anything goes
 // wrong (missing key, network error, unexpected shape). Callers treat null
 // as "skip the semantic-similarity stage," the same fallback philosophy as
 // the LLM classifier — never a fatal error.
 export async function generateEmbedding(text: string): Promise<number[] | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.error("[embeddings] GEMINI_API_KEY is not set, skipping embedding generation");
+    console.error("[embeddings] OPENROUTER_API_KEY is not set, skipping embedding generation");
     return null;
   }
 
@@ -20,23 +21,27 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
     const response = await fetch(EMBEDDING_URL, {
       method: "POST",
       headers: {
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "x-goog-api-key": apiKey,
+        "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER ?? "http://localhost:4000",
+        "X-Title": process.env.OPENROUTER_APP_TITLE ?? "Nivaran Civic Platform",
       },
       body: JSON.stringify({
-        model: `models/${EMBEDDING_MODEL}`,
-        content: { parts: [{ text }] },
-        embedContentConfig: { outputDimensionality: EMBEDDING_DIMENSIONS },
+        model: EMBEDDING_MODEL,
+        input: text,
+        dimensions: EMBEDDING_DIMENSIONS,
       }),
     });
 
     if (!response.ok) {
-      console.error(`[embeddings] Gemini embedContent returned ${response.status}: ${await response.text()}`);
+      console.error(`[embeddings] OpenRouter embeddings returned ${response.status}: ${await response.text()}`);
       return null;
     }
 
-    const data = (await response.json()) as { embedding?: { values?: number[] } };
-    const values = data.embedding?.values;
+    const data = (await response.json()) as {
+      data?: Array<{ embedding?: number[] }>;
+    };
+    const values = data.data?.[0]?.embedding;
 
     if (!Array.isArray(values) || values.length !== EMBEDDING_DIMENSIONS) {
       console.error("[embeddings] Unexpected embedding response shape:", data);
