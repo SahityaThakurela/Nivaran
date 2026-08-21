@@ -1,5 +1,5 @@
 /**
- * Design tokens from Figma frame 53:7070 (Splash Screen).
+ * Design tokens from Figma frame 53:7070 (Splash Screen) and subsequent screens.
  * Values match the file exactly — do not approximate.
  */
 export const colors = {
@@ -15,6 +15,38 @@ export const colors = {
   loadingFill: "#004AC6",
   logoCard: "#F9F9FF",
   white: "#FFFFFF",
+  placeholder: "#C3C6D7",
+  divider: "rgba(195, 198, 215, 0.5)",
+  borderMuted: "rgba(195, 198, 215, 0.3)",
+  inputBg: "#F9F9FF",
+  cardWhite: "#FFFFFF",
+  softBlue: "#E9EDFF",
+  softBlueAlt: "#E1E8FF",
+  softBlueBtn: "#F1F3FF",
+  heroBlue: "#2563EB",
+  heroText: "#EEEFFF",
+  heroText90: "rgba(238, 239, 255, 0.9)",
+  statusProgressBg: "rgba(255, 185, 95, 0.2)",
+  statusProgressDot: "#784B00",
+  statusProgressText: "#653E00",
+  statusResolvedBg: "rgba(124, 249, 148, 0.3)",
+  statusResolvedDot: "#006E2D",
+  statusResolvedText: "#005320",
+  relatedGreen: "#7CF994",
+  relatedGreenText: "#007230",
+  relatedGreenBody: "rgba(0, 114, 48, 0.8)",
+  relatedGreenBtn: "#006E2D",
+  danger: "#BA1A1A",
+  lavender: "#E9EDFF",
+  navInactive: "#434655",
+  textSecondary: "#737686",
+} as const;
+
+export const fonts = {
+  Inter_400Regular: "Inter_400Regular",
+  Inter_500Medium: "Inter_500Medium",
+  Inter_600SemiBold: "Inter_600SemiBold",
+  PlusJakartaSans_600SemiBold: "PlusJakartaSans_600SemiBold",
 } as const;
 
 export const typography = {
@@ -22,29 +54,50 @@ export const typography = {
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: -0.4,
-    fontFamily: "Inter_600SemiBold",
+    fontFamily: fonts.Inter_600SemiBold,
     color: colors.brandNavy,
   },
   taglineActive: {
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: 0.4,
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.Inter_500Medium,
     color: colors.brandBlue,
   },
   tagline: {
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: 0.4,
-    fontFamily: "Inter_500Medium",
+    fontFamily: fonts.Inter_500Medium,
     color: colors.bodyMuted,
   },
   trustMark: {
     fontSize: 16,
     lineHeight: 24,
     letterSpacing: 0,
-    fontFamily: "Inter_400Regular",
+    fontFamily: fonts.Inter_400Regular,
     color: colors.bodyMuted60,
+  },
+  body16: {
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0,
+    fontFamily: fonts.Inter_400Regular,
+    color: colors.bodyMuted,
+  },
+  headingJakarta16: {
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0,
+    fontFamily: fonts.PlusJakartaSans_600SemiBold,
+    color: colors.brandNavy,
+  },
+  label16: {
+    fontSize: 16,
+    lineHeight: 24,
+    letterSpacing: 0,
+    fontFamily: fonts.Inter_500Medium,
+    color: colors.brandNavy,
   },
 } as const;
 

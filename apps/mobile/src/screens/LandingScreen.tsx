@@ -1,19 +1,26 @@
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { getHealth } from "../api/health";
+import { useAuth } from "../auth/AuthContext";
 import { LoadingIndicator } from "../components/LoadingIndicator";
 import { LogoMark, logoCardShadow } from "../components/LogoMark";
 import { Tagline } from "../components/Tagline";
 import { TrustMark } from "../components/TrustMark";
+import type { RootStackParamList } from "../navigation/types";
 import { colors, spacing, typography } from "../theme/tokens";
 
 type LandingStatus = "loading" | "ready" | "error";
+type Nav = NativeStackNavigationProp<RootStackParamList, "Landing">;
 
 /**
  * Splash / landing screen — Figma node 53:7070.
  * Calls GET /health while the loading bar runs (no mock data).
  */
 export function LandingScreen() {
+  const navigation = useNavigation<Nav>();
+  const { token } = useAuth();
   const [progress, setProgress] = useState(0.12);
   const [status, setStatus] = useState<LandingStatus>("loading");
 
@@ -34,6 +41,7 @@ export function LandingScreen() {
         if (cancelled) return;
         setProgress(1);
         setStatus("ready");
+        navigation.replace(token ? "Home" : "Auth");
       } catch {
         if (cancelled) return;
         setProgress(1);
@@ -45,7 +53,7 @@ export function LandingScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [navigation, token]);
 
   return (
     <View style={styles.screen} accessibilityLabel="Nivaran landing">

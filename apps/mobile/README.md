@@ -5,18 +5,28 @@ Expo (React Native + TypeScript) citizen app for **Nivaran**.
 ## Run
 
 ```bash
-# from repo root — API must be up for the splash health check
+# terminal 1 — API
 pnpm --filter @civic/api dev
 
-# in another terminal
+# terminal 2
 cd apps/mobile
 pnpm start
 ```
 
-Set `EXPO_PUBLIC_API_URL` when using a physical device (e.g. `http://192.168.x.x:4000`).
+### Env (`apps/mobile/.env`)
+
+| Variable | Purpose |
+| --- | --- |
+| `EXPO_PUBLIC_API_URL` | API base (default `http://127.0.0.1:4000`; use `10.0.2.2` on Android emulator) |
+| `EXPO_PUBLIC_DEFAULT_CITY_ID` | Fallback `cityId` for `POST /api/issues` when the user has none |
 
 ## Screens
 
 | Screen | Figma | API |
 | --- | --- | --- |
-| Landing / splash | `53:7070` | `GET /health` |
+| Landing | `53:7070` | `GET /health` |
+| Login / Signup | `53:7239` | `POST /api/auth/login`, `POST /api/auth/register` |
+| Home | `53:7099` | `GET /api/issues` |
+| Capture | `53:7291` | camera / gallery → next screen |
+| Report Details | `53:7336` | `POST /api/issues` |
+| Track Issue | `53:7590` | `GET /api/issues/:id` |
