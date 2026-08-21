@@ -17,7 +17,7 @@ pnpm start
 
 | Variable | Purpose |
 | --- | --- |
-| `EXPO_PUBLIC_API_URL` | API base (default `http://127.0.0.1:4000`; use `10.0.2.2` on Android emulator) |
+| `EXPO_PUBLIC_API_URL` | Optional. Leave empty in local dev (auto-uses Mac LAN IP from Expo). Do not use `127.0.0.1` on Android. |
 | `EXPO_PUBLIC_DEFAULT_CITY_ID` | Fallback `cityId` for `POST /api/issues` when the user has none |
 
 ## Screens
