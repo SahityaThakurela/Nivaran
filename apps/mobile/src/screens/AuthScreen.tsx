@@ -42,6 +42,7 @@ export function AuthScreen() {
         const trimmedName = name.trim();
         if (!trimmedName) {
           setError("Please enter your name.");
+          setBusy(false);
           return;
         }
         const isEmail = identifier.includes("@");
@@ -136,7 +137,11 @@ export function AuthScreen() {
             placeholder="Password"
             labelRight={
               mode === "login" ? (
-                <Pressable onPress={() => undefined}>
+                <Pressable
+                  onPress={() =>
+                    setError("Password reset isn’t available in the app yet.")
+                  }
+                >
                   <Text style={styles.forgot}>Forgot?</Text>
                 </Pressable>
               ) : null

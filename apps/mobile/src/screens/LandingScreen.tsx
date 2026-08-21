@@ -6,52 +6,82 @@ import { getHealth } from "../api/health";
 import { useAuth } from "../auth/AuthContext";
 import { LoadingIndicator } from "../components/LoadingIndicator";
 import { LogoMark, logoCardShadow } from "../components/LogoMark";
-import { Tagline } from "../components/Tagline";
+import { Tagline, type TaglinePhase } from "../components/Tagline";
 import { TrustMark } from "../components/TrustMark";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, spacing, typography } from "../theme/tokens";
 
-type LandingStatus = "loading" | "ready" | "error";
 type Nav = NativeStackNavigationProp<RootStackParamList, "Landing">;
 
+const PHASES: TaglinePhase[] = ["report", "resolve", "improve"];
+const PHASE_MS = 550;
+const HEALTH_TIMEOUT_MS = 2500;
+const MIN_DISPLAY_MS = PHASE_MS * PHASES.length;
+
 /**
- * Splash / landing screen — Figma node 53:7070.
- * Calls GET /health while the loading bar runs (no mock data).
+ * Splash sequence — Figma nodes 53:7070 → 61:3 → 61:32
+ * (Report. → Resolve. → Improve.), then Auth or Home.
+ * Health is best-effort; never block navigation on API failure.
  */
 export function LandingScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
   const [progress, setProgress] = useState(0.12);
-  const [status, setStatus] = useState<LandingStatus>("loading");
+  const [phase, setPhase] = useState<TaglinePhase>("report");
+  const [apiHint, setApiHint] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     const started = Date.now();
-    const minDisplayMs = 1200;
+    let phaseIndex = 0;
+
+    const phaseTimer = setInterval(() => {
+      if (cancelled) return;
+      phaseIndex = Math.min(phaseIndex + 1, PHASES.length - 1);
+      setPhase(PHASES[phaseIndex]!);
+      setProgress(0.2 + (phaseIndex + 1) * 0.25);
+    }, PHASE_MS);
 
     async function bootstrap() {
+      let healthOk = false;
       try {
-        setProgress(0.35);
-        await getHealth();
-        if (cancelled) return;
-        setProgress(0.85);
-        const elapsed = Date.now() - started;
-        const wait = Math.max(0, minDisplayMs - elapsed);
-        await new Promise((resolve) => setTimeout(resolve, wait));
-        if (cancelled) return;
-        setProgress(1);
-        setStatus("ready");
-        navigation.replace(token ? "Home" : "Auth");
+        await Promise.race([
+          getHealth()
+            .then(() => {
+              healthOk = true;
+            })
+            .catch(() => {
+              /* best-effort */
+            }),
+          new Promise<void>((resolve) =>
+            setTimeout(resolve, HEALTH_TIMEOUT_MS),
+          ),
+        ]);
       } catch {
-        if (cancelled) return;
-        setProgress(1);
-        setStatus("error");
+        healthOk = false;
       }
+
+      if (cancelled) return;
+
+      if (!healthOk) {
+        setApiHint("API offline — continuing to sign in.");
+      }
+
+      const elapsed = Date.now() - started;
+      const wait = Math.max(0, MIN_DISPLAY_MS - elapsed);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+      if (cancelled) return;
+
+      setPhase("improve");
+      setProgress(1);
+      clearInterval(phaseTimer);
+      navigation.replace(token ? "Home" : "Auth");
     }
 
     void bootstrap();
     return () => {
       cancelled = true;
+      clearInterval(phaseTimer);
     };
   }, [navigation, token]);
 
@@ -72,18 +102,14 @@ export function LandingScreen() {
 
         <View style={styles.typography}>
           <Text style={styles.brandName}>NIVARAN</Text>
-          <Tagline />
+          <Tagline active={phase} />
         </View>
 
         <View style={styles.loadingWrap}>
           <LoadingIndicator progress={progress} />
         </View>
 
-        {status === "error" ? (
-          <Text style={styles.errorText}>
-            Can’t reach the API. Is apps/api running on port 4000?
-          </Text>
-        ) : null}
+        {apiHint ? <Text style={styles.hintText}>{apiHint}</Text> : null}
       </View>
     </View>
   );
@@ -113,7 +139,6 @@ const styles = StyleSheet.create({
     borderRadius: 9999,
     backgroundColor: colors.glow,
   },
-  // Approximate Figma blur(20px) + opacity 0.7 without a BlurView dependency.
   glowOuter: {
     top: -16,
     right: -16,
@@ -153,7 +178,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.loadingTop,
     alignItems: "center",
   },
-  errorText: {
+  hintText: {
     marginTop: 16,
     fontFamily: "Inter_400Regular",
     fontSize: 12,
