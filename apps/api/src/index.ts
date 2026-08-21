@@ -22,7 +22,14 @@ app.get("/health", async (_req, res) => {
     res.json({ status: "ok", db: "connected" });
   } catch (error) {
     console.error("Database health check failed:", error);
-    res.status(500).json({ status: "error", db: "unreachable" });
+    const message = error instanceof Error ? error.message : String(error);
+    const db =
+      /Authentication failed|credentials/i.test(message)
+        ? "auth_failed"
+        : /Can't reach database server|P1001/i.test(message)
+          ? "unreachable"
+          : "error";
+    res.status(500).json({ status: "error", db });
   }
 });
 

@@ -7,7 +7,9 @@ datasource db {
   provider   = "postgresql"
   url        = env("DATABASE_URL")
   directUrl  = env("DIRECT_URL")
-  extensions = [pg_stat_statements, pgcrypto, postgis, supabase_vault, uuid_ossp(map: "uuid-ossp"), vector]
+  // Only extensions the app actually uses. Supabase-only ones (supabase_vault,
+  // pg_stat_statements) stay out so `prisma db push` also works on local Postgres.
+  extensions = [pgcrypto, postgis, uuid_ossp(map: "uuid-ossp"), vector]
 }
 
 enum UserRole {

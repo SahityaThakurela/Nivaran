@@ -72,7 +72,7 @@ export async function findDuplicateCandidates(
     FROM "Report" r, (SELECT location, embedding FROM "Report" WHERE id = ${reportId}) AS target
     WHERE r.id != ${reportId}
       AND r."cityId" = ${target.cityId}
-      AND r.status IN (${Prisma.join(OPEN_STATUSES)})
+      AND r.status::text IN (${Prisma.join(OPEN_STATUSES)})
       AND target.location IS NOT NULL
       AND r.location IS NOT NULL
       AND ST_DWithin(r.location, target.location, ${radiusMeters})

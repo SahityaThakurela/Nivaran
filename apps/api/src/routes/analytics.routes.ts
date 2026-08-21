@@ -47,19 +47,18 @@ analyticsRouter.use(authenticate);
 analyticsRouter.get("/overview", requireRole(...STAFF_ROLES), requireScope(), async (req, res) => {
   const scope: Scope = req.scope ?? {};
 
-  const [statusGroups, categoryGroups, severityGroups, totalReports, openReports, pendingClassification, resolvedEvents] =
-    await Promise.all([
-      prisma.report.groupBy({ by: ["status"], where: scope, _count: true }),
-      prisma.report.groupBy({ by: ["category"], where: scope, _count: true }),
-      prisma.report.groupBy({ by: ["severity"], where: scope, _count: true }),
-      prisma.report.count({ where: scope }),
-      prisma.report.count({ where: { ...scope, status: { in: OPEN_STATUSES } } }),
-      prisma.report.count({ where: { ...scope, category: null } }),
-      prisma.reportStatusEvent.findMany({
-        where: { status: ReportStatus.RESOLVED, report: scope },
-        select: { createdAt: true, report: { select: { createdAt: true } } },
-      }),
-    ]);
+  // Run sequentially — PgBouncer transaction pooling + concurrent Prisma
+  // queries on one client still flaky even with pgbouncer=true.
+  const statusGroups = await prisma.report.groupBy({ by: ["status"], where: scope, _count: true });
+  const categoryGroups = await prisma.report.groupBy({ by: ["category"], where: scope, _count: true });
+  const severityGroups = await prisma.report.groupBy({ by: ["severity"], where: scope, _count: true });
+  const totalReports = await prisma.report.count({ where: scope });
+  const openReports = await prisma.report.count({ where: { ...scope, status: { in: OPEN_STATUSES } } });
+  const pendingClassification = await prisma.report.count({ where: { ...scope, category: null } });
+  const resolvedEvents = await prisma.reportStatusEvent.findMany({
+    where: { status: ReportStatus.RESOLVED, report: scope },
+    select: { createdAt: true, report: { select: { createdAt: true } } },
+  });
 
   // Plain arithmetic average, same "no AI here" philosophy as priorityScore.
   const resolutionHours = resolvedEvents.map(
