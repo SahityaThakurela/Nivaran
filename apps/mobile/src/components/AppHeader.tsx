@@ -9,6 +9,8 @@ type AppHeaderProps = {
   onBack?: () => void;
   showActions?: boolean;
   dark?: boolean;
+  onNotifications?: () => void;
+  onProfile?: () => void;
 };
 
 export function AppHeader({
@@ -17,6 +19,8 @@ export function AppHeader({
   onBack,
   showActions = true,
   dark = false,
+  onNotifications,
+  onProfile,
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
   const isBack = variant === "back";
@@ -48,7 +52,26 @@ export function AppHeader({
               </Text>
             ) : null}
           </View>
-          <View style={styles.backSpacer} />
+          {showActions ? (
+            <View style={styles.actions}>
+              <Pressable
+                style={styles.actionBtn}
+                accessibilityLabel="Notifications"
+                onPress={onNotifications}
+              >
+                <Icon name="bell" width={16} height={20} color={colors.bodyMuted} />
+              </Pressable>
+              <Pressable
+                style={styles.profileCircle}
+                accessibilityLabel="Profile"
+                onPress={onProfile}
+              >
+                <Icon name="profile" width={12} height={12} color={colors.white} />
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.backSpacer} />
+          )}
         </View>
       ) : (
         <View style={styles.row}>
@@ -62,12 +85,20 @@ export function AppHeader({
           </View>
           {showActions ? (
             <View style={styles.actions}>
-              <Pressable style={styles.actionBtn} accessibilityLabel="Notifications">
+              <Pressable
+                style={styles.actionBtn}
+                accessibilityLabel="Notifications"
+                onPress={onNotifications}
+              >
                 <Icon name="bell" width={16} height={20} color={colors.bodyMuted} />
               </Pressable>
-              <View style={styles.profileCircle}>
+              <Pressable
+                style={styles.profileCircle}
+                accessibilityLabel="Profile"
+                onPress={onProfile}
+              >
                 <Icon name="profile" width={12} height={12} color={colors.white} />
-              </View>
+              </Pressable>
             </View>
           ) : null}
         </View>
@@ -78,19 +109,26 @@ export function AppHeader({
 
 const styles = StyleSheet.create({
   wrap: {
+    backgroundColor: "rgba(249, 249, 255, 0.95)",
     paddingHorizontal: 16,
     paddingBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+    zIndex: 10,
   },
   row: {
+    height: 48,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 40,
   },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 12,
   },
   logo: {
     width: 32,
@@ -104,8 +142,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.Inter_600SemiBold,
     fontSize: 16,
     lineHeight: 24,
-    letterSpacing: -0.4,
-    color: "#004AC6",
+    color: colors.brandBlueDeep,
   },
   actions: {
     flexDirection: "row",
@@ -113,12 +150,17 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   actionBtn: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 9999,
+    backgroundColor: colors.softBlue,
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileCircle: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 9999,
     backgroundColor: colors.brandBlueDeep,
     alignItems: "center",
     justifyContent: "center",
@@ -128,13 +170,13 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: -8,
   },
   backTitleRow: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    justifyContent: "center",
+    gap: 12,
   },
   backTitle: {
     fontFamily: fonts.PlusJakartaSans_600SemiBold,
@@ -142,6 +184,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   backSpacer: {
-    width: 40,
+    width: 72,
   },
 });

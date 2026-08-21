@@ -46,6 +46,9 @@ export type Report = {
   status: ReportStatus;
   isDuplicate: boolean;
   duplicateOfId: string | null;
+  resolutionEvidenceUrls?: string[];
+  feedbackRating?: number | null;
+  feedbackComment?: string | null;
   cityId: string;
   reportedById: string;
   assignedToId: string | null;

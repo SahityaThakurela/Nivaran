@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Report } from "./types";
+import type { Report, ReportCategory, ReportStatus } from "./types";
 
 export type CreateIssueInput = {
   description: string;
@@ -10,6 +10,11 @@ export type CreateIssueInput = {
   photoUrls?: string[];
 };
 
+export type ListIssuesQuery = {
+  status?: ReportStatus;
+  category?: ReportCategory;
+};
+
 type ReportsResponse = {
   reports: Report[];
 };
@@ -18,11 +23,18 @@ type ReportResponse = {
   report: Report;
 };
 
-export async function listIssues(token: string): Promise<Report[]> {
-  const data = await apiClient<ReportsResponse>("/api/issues", {
-    method: "GET",
-    token,
-  });
+export async function listIssues(
+  token: string,
+  query?: ListIssuesQuery,
+): Promise<Report[]> {
+  const params = new URLSearchParams();
+  if (query?.status) params.set("status", query.status);
+  if (query?.category) params.set("category", query.category);
+  const qs = params.toString();
+  const data = await apiClient<ReportsResponse>(
+    `/api/issues${qs ? `?${qs}` : ""}`,
+    { method: "GET", token },
+  );
   return data.reports;
 }
 

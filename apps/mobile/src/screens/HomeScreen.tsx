@@ -18,6 +18,7 @@ import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
 import { StatusBadge } from "../components/StatusBadge";
+import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import {
@@ -84,17 +85,16 @@ export function HomeScreen() {
   }
 
   function onNav(tab: NavTab) {
-    if (tab === "home") return;
-    if (tab === "report") {
-      goCapture();
-      return;
-    }
-    // Other tabs not yet separate screens — stay on Home for hackathon.
+    handleTabNavigate(navigation, tab, "home");
   }
 
   return (
     <View style={styles.screen}>
-      <AppHeader variant="home" />
+      <AppHeader
+        variant="home"
+        onNotifications={() => navigation.navigate("Notifications")}
+        onProfile={() => navigation.navigate("Profile")}
+      />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -138,7 +138,7 @@ export function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Reports</Text>
-          <Pressable onPress={() => undefined}>
+          <Pressable onPress={() => navigation.navigate("MyReports")}>
             <Text style={styles.viewAll}>View All</Text>
           </Pressable>
         </View>

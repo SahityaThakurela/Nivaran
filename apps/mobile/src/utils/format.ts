@@ -1,4 +1,4 @@
-import type { ReportCategory, ReportStatus } from "../api/types";
+import type { ReportStatus, Severity } from "../api/types";
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -34,15 +34,25 @@ export function formatRelativeTime(iso: string): string {
   if (days < 7) {
     return `${days}d ago`;
   }
+  if (days < 14) {
+    return "1w ago";
+  }
   return new Date(iso).toLocaleDateString();
 }
 
 export function formatStatusLabel(status: ReportStatus | string): string {
+  if (status === "SUBMITTED" || status === "ACKNOWLEDGED") return "Open";
+  if (status === "ASSIGNED" || status === "IN_PROGRESS") return "In Progress";
   return titleCaseWords(status);
 }
 
-export function formatCategoryLabel(category: ReportCategory | string): string {
+export function formatCategoryLabel(category: string): string {
   return titleCaseWords(category);
+}
+
+export function formatSeverityLabel(severity: Severity | string | null): string {
+  if (!severity) return "";
+  return `${titleCaseWords(severity)} Priority`;
 }
 
 export function greetingForNow(): string {
@@ -54,4 +64,42 @@ export function greetingForNow(): string {
     return "Good afternoon";
   }
   return "Good evening";
+}
+
+/** Progress step for My Reports cards (1–3). */
+export function reportProgressStep(status: ReportStatus): {
+  step: number;
+  total: number;
+} {
+  switch (status) {
+    case "RESOLVED":
+      return { step: 3, total: 3 };
+    case "ASSIGNED":
+    case "IN_PROGRESS":
+      return { step: 2, total: 3 };
+    default:
+      return { step: 1, total: 3 };
+  }
+}
+
+/** Haversine distance in meters. */
+export function distanceMeters(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+export function formatDistance(meters: number): string {
+  if (meters < 1000) return `${Math.round(meters)}m away`;
+  return `${(meters / 1000).toFixed(1)}km away`;
 }

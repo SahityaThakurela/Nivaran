@@ -1,5 +1,6 @@
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -17,9 +18,11 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import { StatusBadge } from "../components/StatusBadge";
+import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import { formatCategoryLabel, formatRelativeTime } from "../utils/format";
+import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "TrackIssue">;
 type Route = RouteProp<RootStackParamList, "TrackIssue">;
@@ -90,6 +93,7 @@ export function TrackIssueScreen() {
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -104,6 +108,8 @@ export function TrackIssueScreen() {
       try {
         const data = await getIssue(token, issueId);
         if (!cancelled) setReport(data);
+        const flag = await AsyncStorage.getItem(verifiedStorageKey(issueId));
+        if (!cancelled) setVerified(flag === "1");
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Failed to load issue");
@@ -124,13 +130,7 @@ export function TrackIssueScreen() {
   );
 
   function onNav(tab: NavTab) {
-    if (tab === "home") {
-      navigation.navigate("Home");
-      return;
-    }
-    if (tab === "report") {
-      navigation.navigate("Capture");
-    }
+    handleTabNavigate(navigation, tab, "reports");
   }
 
   const heroSource = report?.photoUrls[0]
@@ -144,7 +144,9 @@ export function TrackIssueScreen() {
       <AppHeader
         variant="back"
         title="Track Issue"
-        onBack={() => navigation.navigate("Home")}
+        onBack={() => navigation.goBack()}
+        onNotifications={() => navigation.navigate("Notifications")}
+        onProfile={() => navigation.navigate("Profile")}
       />
 
       {loading ? (
@@ -248,6 +250,23 @@ export function TrackIssueScreen() {
               </View>
             ))}
           </View>
+
+          {report.status === "RESOLVED" && !verified ? (
+            <Pressable
+              style={styles.verifyBtn}
+              onPress={() =>
+                navigation.navigate("VerifyResolution", { issueId: report.id })
+              }
+            >
+              <Icon
+                name="confirm_check"
+                width={18}
+                height={18}
+                color={colors.white}
+              />
+              <Text style={styles.verifyBtnText}>Verify Resolution</Text>
+            </Pressable>
+          ) : null}
         </ScrollView>
       )}
 
@@ -431,5 +450,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     color: colors.textSecondary,
+  },
+  verifyBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: colors.resolvedDark,
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  verifyBtnText: {
+    fontFamily: fonts.Inter_600SemiBold,
+    fontSize: 15,
+    color: colors.white,
   },
 });

@@ -40,6 +40,19 @@ export const colors = {
   lavender: "#E9EDFF",
   navInactive: "#434655",
   textSecondary: "#737686",
+  mustard: "#784B00",
+  mustardSoft: "#F5E6C8",
+  resolvedBanner: "#7CF994",
+  resolvedDark: "#006E2D",
+  resolvedText: "#007230",
+  unresolvedBg: "#FFDAD6",
+  unresolvedText: "#93000A",
+  severityHigh: "#BA1A1A",
+  severityMed: "#996100",
+  severityLow: "#006E2D",
+  unreadTint: "rgba(0, 74, 198, 0.05)",
+  chipTrack: "#D9E2FC",
+  dragHandle: "#C3C6D7",
 } as const;
 
 export const fonts = {
