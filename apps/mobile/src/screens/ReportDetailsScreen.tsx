@@ -1,6 +1,6 @@
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Image,
   Pressable,
@@ -42,15 +42,36 @@ export function ReportDetailsScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token, user } = useAuth();
-  const { photoUri, latitude, longitude, address, category: initialCategory } =
-    route.params;
+  const { photoUri, category: initialCategory } = route.params;
 
+  const [latitude, setLatitude] = useState(route.params.latitude);
+  const [longitude, setLongitude] = useState(route.params.longitude);
+  const [address, setAddress] = useState(route.params.address);
   const [category, setCategory] = useState<ReportCategory | null>(
     (initialCategory as ReportCategory | undefined) ?? null,
   );
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLatitude(route.params.latitude);
+    setLongitude(route.params.longitude);
+    setAddress(route.params.address);
+  }, [
+    route.params.latitude,
+    route.params.longitude,
+    route.params.address,
+  ]);
+
+  function openAdjustMap() {
+    navigation.navigate("AdjustMap", {
+      latitude,
+      longitude,
+      photoUri,
+      category: category ?? initialCategory,
+    });
+  }
 
   async function handleSubmit() {
     if (!token) {
@@ -64,6 +85,10 @@ export function ReportDetailsScreen() {
     }
     if (!description.trim()) {
       setError("Please add a short description.");
+      return;
+    }
+    if (!latitude || !longitude) {
+      setError("Set a location on the map before submitting.");
       return;
     }
 
@@ -116,15 +141,17 @@ export function ReportDetailsScreen() {
                 {address ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
               </Text>
             </View>
-            <Pressable onPress={() => navigation.goBack()}>
+            <Pressable onPress={openAdjustMap}>
               <Text style={styles.adjust}>Adjust Map</Text>
             </Pressable>
           </View>
-          <Image
-            source={require("../../assets/images/map-preview.png")}
-            style={styles.mapPreview}
-            resizeMode="cover"
-          />
+          <Pressable onPress={openAdjustMap}>
+            <Image
+              source={require("../../assets/images/map-preview.png")}
+              style={styles.mapPreview}
+              resizeMode="cover"
+            />
+          </Pressable>
         </View>
 
         <Text style={styles.sectionLabel}>Category</Text>

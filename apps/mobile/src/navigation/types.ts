@@ -14,6 +14,12 @@ export type RootStackParamList = {
     address?: string;
     category?: string;
   };
+  AdjustMap: {
+    latitude: number;
+    longitude: number;
+    photoUri: string;
+    category?: string;
+  };
   TrackIssue: { issueId: string };
   VerifyResolution: { issueId: string };
 };

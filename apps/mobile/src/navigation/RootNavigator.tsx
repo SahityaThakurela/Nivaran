@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../auth/AuthContext";
+import { AdjustMapScreen } from "../screens/AdjustMapScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { CaptureScreen } from "../screens/CaptureScreen";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -41,6 +42,7 @@ export function RootNavigator() {
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Capture" component={CaptureScreen} />
       <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
+      <Stack.Screen name="AdjustMap" component={AdjustMapScreen} />
       <Stack.Screen name="TrackIssue" component={TrackIssueScreen} />
       <Stack.Screen name="VerifyResolution" component={VerifyResolutionScreen} />
     </Stack.Navigator>
