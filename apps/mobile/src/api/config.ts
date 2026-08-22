@@ -41,3 +41,7 @@ const fallbackHost =
 
 export const API_BASE_URL =
   envUrl && !isLoopbackUrl(envUrl) ? envUrl : `http://${fallbackHost}:4000`;
+
+/** Fallback city for register + create issue when the user has no cityId. */
+export const DEFAULT_CITY_ID =
+  process.env.EXPO_PUBLIC_DEFAULT_CITY_ID?.trim() || undefined;

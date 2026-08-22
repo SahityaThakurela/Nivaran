@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../auth/AuthContext";
+import { DEFAULT_CITY_ID } from "../api/config";
 import { AppButton, TextField } from "../components/FormControls";
 import { Icon } from "../components/Icon";
 import type { RootStackParamList } from "../navigation/types";
@@ -50,7 +51,7 @@ export function AuthScreen() {
           name: trimmedName,
           ...(isEmail ? { email: identifier.trim() } : { phone: identifier.trim() }),
           password,
-          cityId: process.env.EXPO_PUBLIC_DEFAULT_CITY_ID || undefined,
+          cityId: DEFAULT_CITY_ID,
         });
       } else {
         const isEmail = identifier.includes("@");
@@ -75,7 +76,7 @@ export function AuthScreen() {
         name: "Citizen",
         phone: `c${Date.now()}`,
         password: "citizen123",
-        cityId: process.env.EXPO_PUBLIC_DEFAULT_CITY_ID || undefined,
+        cityId: DEFAULT_CITY_ID,
       });
       navigation.replace("Home");
     } catch (e) {

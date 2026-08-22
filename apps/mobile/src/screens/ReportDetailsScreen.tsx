@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import type { ReportCategory } from "../api/types";
 import { createIssue } from "../api/issues";
+import { DEFAULT_CITY_ID } from "../api/config";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
 import { AppButton } from "../components/FormControls";
@@ -106,7 +107,7 @@ export function ReportDetailsScreen() {
       setError("Please sign in again.");
       return;
     }
-    const cityId = user?.cityId || process.env.EXPO_PUBLIC_DEFAULT_CITY_ID;
+    const cityId = user?.cityId || DEFAULT_CITY_ID;
     if (!cityId) {
       setError("Missing city ID. Set EXPO_PUBLIC_DEFAULT_CITY_ID in .env.");
       return;
