@@ -1,8 +1,11 @@
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -54,6 +57,10 @@ export function ReportDetailsScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const scrollRef = useRef<ScrollView>(null);
+  const descriptionOffsetY = useRef(0);
+  const descriptionFocused = useRef(false);
+
   useEffect(() => {
     setLatitude(route.params.latitude);
     setLongitude(route.params.longitude);
@@ -64,6 +71,17 @@ export function ReportDetailsScreen() {
     route.params.address,
   ]);
 
+  useEffect(() => {
+    const event =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const sub = Keyboard.addListener(event, () => {
+      if (descriptionFocused.current) {
+        scrollDescriptionIntoView();
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   function openAdjustMap() {
     navigation.navigate("AdjustMap", {
       latitude,
@@ -71,6 +89,16 @@ export function ReportDetailsScreen() {
       photoUri,
       category: category ?? initialCategory,
     });
+  }
+
+  function scrollDescriptionIntoView() {
+    const delay = Platform.OS === "ios" ? 50 : 100;
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, descriptionOffsetY.current - 12),
+        animated: true,
+      });
+    }, delay);
   }
 
   async function handleSubmit() {
@@ -120,98 +148,130 @@ export function ReportDetailsScreen() {
         title="Report Details"
         onBack={() => navigation.goBack()}
       />
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
       >
-        <View style={styles.heroWrap}>
-          <Image source={{ uri: photoUri }} style={styles.hero} resizeMode="cover" />
-          <Pressable style={styles.retake} onPress={() => navigation.goBack()}>
-            <Icon name="retake" width={20} height={20} />
-            <Text style={styles.retakeText}>Retake</Text>
-          </Pressable>
-        </View>
-
-        <View style={styles.locationCard}>
-          <View style={styles.locationTop}>
-            <Icon name="pin" width={12} height={15} color={colors.brandBlueDeep} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.locationLabel}>Location</Text>
-              <Text style={styles.locationValue}>
-                {address ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
-              </Text>
-            </View>
-            <Pressable onPress={openAdjustMap}>
-              <Text style={styles.adjust}>Adjust Map</Text>
-            </Pressable>
-          </View>
-          <Pressable onPress={openAdjustMap}>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.heroWrap}>
             <Image
-              source={require("../../assets/images/map-preview.png")}
-              style={styles.mapPreview}
+              source={{ uri: photoUri }}
+              style={styles.hero}
               resizeMode="cover"
             />
-          </Pressable>
-        </View>
+            <Pressable style={styles.retake} onPress={() => navigation.goBack()}>
+              <Icon name="retake" width={20} height={20} />
+              <Text style={styles.retakeText}>Retake</Text>
+            </Pressable>
+          </View>
 
-        <Text style={styles.sectionLabel}>Category</Text>
-        <View style={styles.chips}>
-          {CATEGORY_CHIPS.map((chip) => {
-            const selected = category === chip.value;
-            return (
-              <Pressable
-                key={chip.value}
-                onPress={() => setCategory(chip.value)}
-                style={[
-                  styles.chip,
-                  selected ? styles.chipSelected : styles.chipIdle,
-                ]}
-              >
-                <Icon
-                  name={chip.icon}
-                  width={14}
-                  height={14}
-                  color={selected ? colors.white : colors.bodyMuted}
-                />
-                <Text
+          <View style={styles.locationCard}>
+            <View style={styles.locationTop}>
+              <Icon
+                name="pin"
+                width={12}
+                height={15}
+                color={colors.brandBlueDeep}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.locationLabel}>Location</Text>
+                <Text style={styles.locationValue}>
+                  {address ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
+                </Text>
+              </View>
+              <Pressable onPress={openAdjustMap}>
+                <Text style={styles.adjust}>Adjust Map</Text>
+              </Pressable>
+            </View>
+            <Pressable onPress={openAdjustMap}>
+              <Image
+                source={require("../../assets/images/map-preview.png")}
+                style={styles.mapPreview}
+                resizeMode="cover"
+              />
+            </Pressable>
+          </View>
+
+          <Text style={styles.sectionLabel}>Category</Text>
+          <View style={styles.chips}>
+            {CATEGORY_CHIPS.map((chip) => {
+              const selected = category === chip.value;
+              return (
+                <Pressable
+                  key={chip.value}
+                  onPress={() => setCategory(chip.value)}
                   style={[
-                    styles.chipText,
-                    selected ? styles.chipTextSelected : null,
+                    styles.chip,
+                    selected ? styles.chipSelected : styles.chipIdle,
                   ]}
                 >
-                  {chip.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Icon
+                    name={chip.icon}
+                    width={14}
+                    height={14}
+                    color={selected ? colors.white : colors.bodyMuted}
+                  />
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected ? styles.chipTextSelected : null,
+                    ]}
+                  >
+                    {chip.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
-        <Text style={styles.sectionLabel}>Description</Text>
-        <View style={styles.textareaWrap}>
-          <TextInput
-            style={styles.textarea}
-            multiline
-            maxLength={MAX_DESC}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe the issue…"
-            placeholderTextColor={colors.placeholder}
-            textAlignVertical="top"
+          <View
+            onLayout={(e) => {
+              descriptionOffsetY.current = e.nativeEvent.layout.y;
+            }}
+          >
+            <Text style={styles.sectionLabel}>Description</Text>
+            <View style={styles.textareaWrap}>
+              <TextInput
+                style={styles.textarea}
+                multiline
+                maxLength={MAX_DESC}
+                value={description}
+                onChangeText={setDescription}
+                onFocus={() => {
+                  descriptionFocused.current = true;
+                  scrollDescriptionIntoView();
+                }}
+                onBlur={() => {
+                  descriptionFocused.current = false;
+                }}
+                placeholder="Describe the issue…"
+                placeholderTextColor={colors.placeholder}
+                textAlignVertical="top"
+              />
+              <Text style={styles.counter}>
+                {description.length}/{MAX_DESC}
+              </Text>
+            </View>
+          </View>
+
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+
+          <AppButton
+            label="Submit Report"
+            onPress={() => void handleSubmit()}
+            iconRight="send"
+            disabled={busy}
           />
-          <Text style={styles.counter}>
-            {description.length}/{MAX_DESC}
-          </Text>
-        </View>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <AppButton
-          label="Submit Report"
-          onPress={() => void handleSubmit()}
-          iconRight="send"
-          disabled={busy}
-        />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -221,10 +281,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  flex: {
+    flex: 1,
+  },
   scroll: {
     padding: 16,
     gap: 16,
-    paddingBottom: 40,
+    paddingBottom: 160,
   },
   heroWrap: {
     borderRadius: 12,
@@ -328,6 +391,7 @@ const styles = StyleSheet.create({
     borderColor: colors.borderMuted,
     padding: 12,
     minHeight: 120,
+    marginTop: 8,
   },
   textarea: {
     fontFamily: fonts.Inter_400Regular,
