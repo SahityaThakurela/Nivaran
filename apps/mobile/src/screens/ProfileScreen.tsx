@@ -14,6 +14,7 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
+import { LogoutConfirmSheet } from "../components/LogoutConfirmSheet";
 import { useLanguage } from "../i18n/LanguageContext";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
@@ -26,6 +27,7 @@ export function ProfileScreen() {
   const { user, logout } = useAuth();
   const { t } = useLanguage();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [showLogoutSheet, setShowLogoutSheet] = useState(false);
 
   function onNav(tab: NavTab) {
     handleTabNavigate(navigation, tab, "profile");
@@ -35,10 +37,11 @@ export function ProfileScreen() {
     Alert.alert(t("profile.edit"), t("profile.editUnavailable"));
   }
 
-  async function onLogout() {
+  async function confirmLogout() {
     setLoggingOut(true);
     try {
       await logout();
+      setShowLogoutSheet(false);
       navigation.reset({
         index: 0,
         routes: [{ name: "Auth" }],
@@ -111,13 +114,11 @@ export function ProfileScreen() {
         <View style={styles.section}>
           <Pressable
             style={styles.logoutRow}
-            onPress={() => void onLogout()}
+            onPress={() => setShowLogoutSheet(true)}
             disabled={loggingOut}
           >
             <Icon name="logout" width={18} height={18} color={colors.danger} />
-            <Text style={styles.logoutText}>
-              {loggingOut ? t("profile.signingOut") : t("profile.logOut")}
-            </Text>
+            <Text style={styles.logoutText}>{t("profile.logOut")}</Text>
           </Pressable>
           <View style={styles.shieldRow}>
             <Icon
@@ -132,6 +133,15 @@ export function ProfileScreen() {
       </ScrollView>
 
       <BottomNav active="profile" onNavigate={onNav} />
+
+      <LogoutConfirmSheet
+        visible={showLogoutSheet}
+        busy={loggingOut}
+        onCancel={() => {
+          if (!loggingOut) setShowLogoutSheet(false);
+        }}
+        onConfirm={() => void confirmLogout()}
+      />
     </View>
   );
 }

@@ -236,6 +236,11 @@ const en = {
   "profile.security": "Security",
   "profile.logOut": "Log Out",
   "profile.signingOut": "Signing out…",
+  "profile.logoutTitle": "Log out of NIVARAN?",
+  "profile.logoutBody":
+    "You can always log in again to track your civic reports.",
+  "profile.logoutConfirm": "Yes, Log Out",
+  "profile.logoutCancel": "Cancel",
   "profile.privacy": "Your reports stay private to your account.",
   "profile.citizen": "Citizen",
 } as const;
@@ -474,6 +479,11 @@ const hi: Record<TranslationKey, string> = {
   "profile.security": "सुरक्षा",
   "profile.logOut": "लॉग आउट",
   "profile.signingOut": "साइन आउट हो रहा है…",
+  "profile.logoutTitle": "NIVARAN से Logout करें?",
+  "profile.logoutBody":
+    "अपनी नागरिक Reports ट्रैक करने के लिए आप कभी भी फिर से लॉग इन कर सकते हैं।",
+  "profile.logoutConfirm": "हाँ, Logout करें",
+  "profile.logoutCancel": "Cancel",
   "profile.privacy": "आपकी रिपोर्ट आपके खाते के लिए निजी रहती हैं।",
   "profile.citizen": "नागरिक",
 };

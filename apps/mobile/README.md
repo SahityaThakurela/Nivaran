@@ -34,7 +34,7 @@ pnpm start
 | Nearby | `53:7756` | `GET /api/issues` + `expo-location` (sort by distance; map pins) |
 | Verify Resolution | `53:7905` | `GET /api/issues/:id`; confirm stores `@nivaran/verified/:id` (no feedback API) |
 | Notifications | `53:8002` | Derived from `GET /api/issues`; read state in `@nivaran/notif-read` |
-| Profile | `53:8164` | Auth user fields; logout clears session → Auth |
+| Profile | `53:8164` | Auth fields; Log Out opens bottom sheet (`53:8360`) then clears session → Auth |
 
 ### Screens 7–11 notes
 
