@@ -21,6 +21,8 @@ import { AppHeader } from "../components/AppHeader";
 import { AppButton } from "../components/FormControls";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -28,16 +30,16 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "ReportDetails">;
 type Route = RouteProp<RootStackParamList, "ReportDetails">;
 
 const CATEGORY_CHIPS: {
-  label: string;
+  labelKey: TranslationKey;
   value: ReportCategory;
   icon: IconName;
 }[] = [
-  { label: "Water", value: "WATER_SUPPLY", icon: "water" },
-  { label: "Drainage", value: "DRAINAGE", icon: "drainage" },
-  { label: "Roads", value: "ROADS", icon: "roads" },
-  { label: "Garbage", value: "SANITATION", icon: "garbage" },
-  { label: "Streetlight", value: "STREETLIGHT", icon: "streetlight" },
-  { label: "Other", value: "OTHER", icon: "other" },
+  { labelKey: "details.chipWater", value: "WATER_SUPPLY", icon: "water" },
+  { labelKey: "details.chipDrainage", value: "DRAINAGE", icon: "drainage" },
+  { labelKey: "details.chipRoads", value: "ROADS", icon: "roads" },
+  { labelKey: "details.chipGarbage", value: "SANITATION", icon: "garbage" },
+  { labelKey: "details.chipStreetlight", value: "STREETLIGHT", icon: "streetlight" },
+  { labelKey: "details.chipOther", value: "OTHER", icon: "other" },
 ];
 
 const MAX_DESC = 500;
@@ -46,6 +48,7 @@ export function ReportDetailsScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token, user } = useAuth();
+  const { t } = useLanguage();
   const { photoUri, category: initialCategory } = route.params;
 
   const [latitude, setLatitude] = useState(route.params.latitude);
@@ -104,20 +107,20 @@ export function ReportDetailsScreen() {
 
   async function handleSubmit() {
     if (!token) {
-      setError("Please sign in again.");
+      setError(t("details.signInAgain"));
       return;
     }
     const cityId = user?.cityId || DEFAULT_CITY_ID;
     if (!cityId) {
-      setError("Missing city ID. Set EXPO_PUBLIC_DEFAULT_CITY_ID in .env.");
+      setError(t("details.missingCity"));
       return;
     }
     if (!description.trim()) {
-      setError("Please add a short description.");
+      setError(t("details.needDescription"));
       return;
     }
     if (!latitude || !longitude) {
-      setError("Set a location on the map before submitting.");
+      setError(t("details.needLocation"));
       return;
     }
 
@@ -136,7 +139,7 @@ export function ReportDetailsScreen() {
       });
       navigation.replace("TrackIssue", { issueId: report.id });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to submit report.");
+      setError(e instanceof Error ? e.message : t("details.failedSubmit"));
     } finally {
       setBusy(false);
     }
@@ -146,7 +149,7 @@ export function ReportDetailsScreen() {
     <View style={styles.screen}>
       <AppHeader
         variant="back"
-        title="Report Details"
+        title={t("details.title")}
         onBack={() => navigation.goBack()}
       />
       <KeyboardAvoidingView
@@ -170,7 +173,7 @@ export function ReportDetailsScreen() {
             />
             <Pressable style={styles.retake} onPress={() => navigation.goBack()}>
               <Icon name="retake" width={20} height={20} />
-              <Text style={styles.retakeText}>Retake</Text>
+              <Text style={styles.retakeText}>{t("details.retake")}</Text>
             </Pressable>
           </View>
 
@@ -183,13 +186,13 @@ export function ReportDetailsScreen() {
                 color={colors.brandBlueDeep}
               />
               <View style={{ flex: 1 }}>
-                <Text style={styles.locationLabel}>Location</Text>
+                <Text style={styles.locationLabel}>{t("details.location")}</Text>
                 <Text style={styles.locationValue}>
                   {address ?? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`}
                 </Text>
               </View>
               <Pressable onPress={openAdjustMap}>
-                <Text style={styles.adjust}>Adjust Map</Text>
+                <Text style={styles.adjust}>{t("details.adjustMap")}</Text>
               </Pressable>
             </View>
             <Pressable onPress={openAdjustMap}>
@@ -201,7 +204,7 @@ export function ReportDetailsScreen() {
             </Pressable>
           </View>
 
-          <Text style={styles.sectionLabel}>Category</Text>
+          <Text style={styles.sectionLabel}>{t("details.category")}</Text>
           <View style={styles.chips}>
             {CATEGORY_CHIPS.map((chip) => {
               const selected = category === chip.value;
@@ -226,7 +229,7 @@ export function ReportDetailsScreen() {
                       selected ? styles.chipTextSelected : null,
                     ]}
                   >
-                    {chip.label}
+                    {t(chip.labelKey)}
                   </Text>
                 </Pressable>
               );
@@ -238,7 +241,7 @@ export function ReportDetailsScreen() {
               descriptionOffsetY.current = e.nativeEvent.layout.y;
             }}
           >
-            <Text style={styles.sectionLabel}>Description</Text>
+            <Text style={styles.sectionLabel}>{t("details.description")}</Text>
             <View style={styles.textareaWrap}>
               <TextInput
                 style={styles.textarea}
@@ -253,7 +256,7 @@ export function ReportDetailsScreen() {
                 onBlur={() => {
                   descriptionFocused.current = false;
                 }}
-                placeholder="Describe the issue…"
+                placeholder={t("details.placeholder")}
                 placeholderTextColor={colors.placeholder}
                 textAlignVertical="top"
               />
@@ -266,7 +269,7 @@ export function ReportDetailsScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <AppButton
-            label="Submit Report"
+            label={t("details.submit")}
             onPress={() => void handleSubmit()}
             iconRight="send"
             disabled={busy}

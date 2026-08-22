@@ -13,6 +13,7 @@ import { AppHeader } from "../components/AppHeader";
 import { AppButton } from "../components/FormControls";
 import { Icon } from "../components/Icon";
 import { OsmMapPicker, type OsmMapPickerHandle } from "../components/OsmMapPicker";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -46,6 +47,7 @@ export function AdjustMapScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const { latitude: initialLat, longitude: initialLng, photoUri, category } =
     route.params;
 
@@ -53,7 +55,7 @@ export function AdjustMapScreen() {
     latitude: initialLat || 28.5355,
     longitude: initialLng || 77.391,
   });
-  const [address, setAddress] = useState("Move the pin to the exact spot");
+  const [address, setAddress] = useState(() => t("map.movePin"));
   const [busy, setBusy] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -94,7 +96,7 @@ export function AdjustMapScreen() {
     setBusy(true);
     try {
       const label =
-        address === "Move the pin to the exact spot"
+        address === t("map.movePin")
           ? await labelForCoords(pin.latitude, pin.longitude)
           : address;
       navigation.navigate({
@@ -117,7 +119,7 @@ export function AdjustMapScreen() {
     <View style={styles.screen}>
       <AppHeader
         variant="back"
-        title="Adjust location"
+        title={t("map.title")}
         onBack={() => navigation.goBack()}
         showActions={false}
       />
@@ -132,14 +134,12 @@ export function AdjustMapScreen() {
 
         <View style={styles.hint}>
           <Icon name="pin" width={12} height={15} color={colors.brandBlueDeep} />
-          <Text style={styles.hintText}>
-            Tap the map or drag the pin to set the exact spot
-          </Text>
+          <Text style={styles.hintText}>{t("map.hint")}</Text>
         </View>
       </View>
 
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
-        <Text style={styles.sheetLabel}>Selected location</Text>
+        <Text style={styles.sheetLabel}>{t("map.selected")}</Text>
         <View style={styles.addressRow}>
           {geocoding ? (
             <ActivityIndicator color={colors.brandBlueDeep} size="small" />
@@ -156,13 +156,13 @@ export function AdjustMapScreen() {
 
         <View style={styles.actions}>
           <AppButton
-            label="Use my location"
+            label={t("map.useMyLocation")}
             variant="secondary"
             onPress={() => void onUseMyLocation()}
             disabled={busy}
           />
           <AppButton
-            label="Confirm location"
+            label={t("map.confirm")}
             onPress={() => void onConfirm()}
             disabled={busy}
             iconRight="confirm_check"

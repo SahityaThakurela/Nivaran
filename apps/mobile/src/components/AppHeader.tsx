@@ -1,7 +1,9 @@
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLanguage } from "../i18n/LanguageContext";
 import { colors, fonts } from "../theme/tokens";
 import { Icon } from "./Icon";
+import { LanguageToggle } from "./LanguageToggle";
 
 type AppHeaderProps = {
   variant: "home" | "back" | "brand";
@@ -23,9 +25,30 @@ export function AppHeader({
   onProfile,
 }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const isBack = variant === "back";
   const iconColor = dark ? colors.white : colors.bodyMuted;
   const titleColor = dark ? colors.white : colors.brandNavy;
+
+  const actions = showActions ? (
+    <View style={styles.actions}>
+      <LanguageToggle />
+      <Pressable
+        style={styles.actionBtn}
+        accessibilityLabel={t("common.notifications")}
+        onPress={onNotifications}
+      >
+        <Icon name="bell" width={16} height={20} color={colors.bodyMuted} />
+      </Pressable>
+      <Pressable
+        style={styles.profileCircle}
+        accessibilityLabel={t("common.profile")}
+        onPress={onProfile}
+      >
+        <Icon name="profile" width={12} height={12} color={colors.white} />
+      </Pressable>
+    </View>
+  ) : null;
 
   return (
     <View style={[styles.wrap, { paddingTop: insets.top + 8 }]}>
@@ -34,7 +57,7 @@ export function AppHeader({
           <Pressable
             onPress={onBack}
             style={styles.backBtn}
-            accessibilityLabel="Go back"
+            accessibilityLabel={t("common.goBack")}
           >
             <Icon name="back" width={16} height={16} color={iconColor} />
           </Pressable>
@@ -52,26 +75,7 @@ export function AppHeader({
               </Text>
             ) : null}
           </View>
-          {showActions ? (
-            <View style={styles.actions}>
-              <Pressable
-                style={styles.actionBtn}
-                accessibilityLabel="Notifications"
-                onPress={onNotifications}
-              >
-                <Icon name="bell" width={16} height={20} color={colors.bodyMuted} />
-              </Pressable>
-              <Pressable
-                style={styles.profileCircle}
-                accessibilityLabel="Profile"
-                onPress={onProfile}
-              >
-                <Icon name="profile" width={12} height={12} color={colors.white} />
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.backSpacer} />
-          )}
+          {actions ?? <View style={styles.backSpacer} />}
         </View>
       ) : (
         <View style={styles.row}>
@@ -83,24 +87,7 @@ export function AppHeader({
             />
             <Text style={styles.brandName}>NIVARAN</Text>
           </View>
-          {showActions ? (
-            <View style={styles.actions}>
-              <Pressable
-                style={styles.actionBtn}
-                accessibilityLabel="Notifications"
-                onPress={onNotifications}
-              >
-                <Icon name="bell" width={16} height={20} color={colors.bodyMuted} />
-              </Pressable>
-              <Pressable
-                style={styles.profileCircle}
-                accessibilityLabel="Profile"
-                onPress={onProfile}
-              >
-                <Icon name="profile" width={12} height={12} color={colors.white} />
-              </Pressable>
-            </View>
-          ) : null}
+          {actions}
         </View>
       )}
     </View>
@@ -129,6 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    flexShrink: 1,
   },
   logo: {
     width: 32,
@@ -147,7 +135,8 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
+    flexShrink: 0,
   },
   actionBtn: {
     width: 40,

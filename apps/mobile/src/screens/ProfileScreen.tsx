@@ -14,6 +14,7 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
+import { useLanguage } from "../i18n/LanguageContext";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
@@ -23,6 +24,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Profile">;
 export function ProfileScreen() {
   const navigation = useNavigation<Nav>();
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const [loggingOut, setLoggingOut] = useState(false);
 
   function onNav(tab: NavTab) {
@@ -30,7 +32,7 @@ export function ProfileScreen() {
   }
 
   function onEditProfile() {
-    Alert.alert("Edit Profile", "Profile editing is not available yet.");
+    Alert.alert(t("profile.edit"), t("profile.editUnavailable"));
   }
 
   async function onLogout() {
@@ -64,44 +66,48 @@ export function ProfileScreen() {
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
-          <Text style={styles.name}>{user?.name ?? "Citizen"}</Text>
-          <Text style={styles.role}>{user?.role ?? "CITIZEN"}</Text>
+          <Text style={styles.name}>{user?.name ?? t("profile.citizen")}</Text>
+          <Text style={styles.role}>
+            {user?.role === "CITIZEN" || !user?.role
+              ? t("profile.citizen")
+              : user.role}
+          </Text>
         </View>
 
-        <Text style={styles.sectionHeader}>Account</Text>
+        <Text style={styles.sectionHeader}>{t("profile.account")}</Text>
         <View style={styles.section}>
           <InfoRow
             icon="mail"
-            label="Email"
-            value={user?.email ?? "Not set"}
+            label={t("profile.email")}
+            value={user?.email ?? t("common.notSet")}
           />
           <InfoRow
             icon="phone"
-            label="Phone"
-            value={user?.phone ?? "Not set"}
+            label={t("profile.phone")}
+            value={user?.phone ?? t("common.notSet")}
           />
           <LinkRow
             icon="user"
-            label="Edit Profile"
+            label={t("profile.edit")}
             onPress={onEditProfile}
           />
         </View>
 
-        <Text style={styles.sectionHeader}>Activity</Text>
+        <Text style={styles.sectionHeader}>{t("profile.activity")}</Text>
         <View style={styles.section}>
           <LinkRow
             icon="nav_reports"
-            label="My Reports"
+            label={t("profile.myReports")}
             onPress={() => navigation.navigate("MyReports")}
           />
           <LinkRow
             icon="bell"
-            label="Notifications"
+            label={t("profile.notifications")}
             onPress={() => navigation.navigate("Notifications")}
           />
         </View>
 
-        <Text style={styles.sectionHeader}>Security</Text>
+        <Text style={styles.sectionHeader}>{t("profile.security")}</Text>
         <View style={styles.section}>
           <Pressable
             style={styles.logoutRow}
@@ -110,7 +116,7 @@ export function ProfileScreen() {
           >
             <Icon name="logout" width={18} height={18} color={colors.danger} />
             <Text style={styles.logoutText}>
-              {loggingOut ? "Signing out…" : "Log Out"}
+              {loggingOut ? t("profile.signingOut") : t("profile.logOut")}
             </Text>
           </Pressable>
           <View style={styles.shieldRow}>
@@ -120,9 +126,7 @@ export function ProfileScreen() {
               height={16}
               color={colors.bodyMuted}
             />
-            <Text style={styles.shieldText}>
-              Your reports stay private to your account.
-            </Text>
+            <Text style={styles.shieldText}>{t("profile.privacy")}</Text>
           </View>
         </View>
       </ScrollView>

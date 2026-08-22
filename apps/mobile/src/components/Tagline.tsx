@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
+import { useLanguage } from "../i18n/LanguageContext";
 import { colors, spacing, typography } from "../theme/tokens";
 
 export type TaglinePhase = "report" | "resolve" | "improve";
@@ -13,13 +14,14 @@ type TaglineProps = {
  * Report. · Resolve. · Improve. — one word active at a time.
  */
 export function Tagline({ active = "report" }: TaglineProps) {
+  const { t } = useLanguage();
   return (
     <View style={styles.row} accessibilityRole="text">
-      <Word label="Report." active={active === "report"} />
+      <Word label={t("landing.report")} active={active === "report"} />
       <View style={styles.dot} />
-      <Word label="Resolve." active={active === "resolve"} />
+      <Word label={t("landing.resolve")} active={active === "resolve"} />
       <View style={styles.dot} />
-      <Word label="Improve." active={active === "improve"} />
+      <Word label={t("landing.improve")} active={active === "improve"} />
     </View>
   );
 }

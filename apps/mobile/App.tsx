@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "./src/auth/AuthContext";
+import { LanguageProvider } from "./src/i18n/LanguageContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -35,12 +36,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <NavigationContainer>
-          <StatusBar style="dark" />
-          <RootNavigator />
-        </NavigationContainer>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <NavigationContainer>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </NavigationContainer>
+        </AuthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

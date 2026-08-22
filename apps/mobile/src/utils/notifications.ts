@@ -1,6 +1,6 @@
 import type { Report } from "../api/types";
 import type { IconName } from "../components/iconAssets";
-import { formatCategoryLabel } from "./format";
+import type { TranslationKey } from "../i18n/translations";
 
 export type NotificationKind =
   | "received"
@@ -22,14 +22,13 @@ export type NotificationItem = {
   ctaVerify?: boolean;
 };
 
+type TranslateFn = (
+  key: TranslationKey,
+  params?: Record<string, string | number>,
+) => string;
+
 function asSet(ids: Iterable<string>): Set<string> {
   return ids instanceof Set ? ids : new Set(ids);
-}
-
-function categoryPhrase(report: Report): string {
-  return report.category
-    ? formatCategoryLabel(report.category)
-    : "your report";
 }
 
 /**
@@ -41,34 +40,39 @@ export function buildNotificationItems(
   reports: Report[],
   verifiedIds: Iterable<string>,
   readIds: Iterable<string>,
+  t: TranslateFn,
+  categoryLabel: (category: string) => string,
 ): NotificationItem[] {
   const verified = asSet(verifiedIds);
   const read = asSet(readIds);
   const items: NotificationItem[] = [];
 
   for (const report of reports) {
-    const label = categoryPhrase(report);
+    const label = report.category
+      ? categoryLabel(report.category)
+      : t("notif.yourReport");
 
     items.push({
       id: `${report.id}:received`,
       issueId: report.id,
       kind: "received",
-      title: "Report Received",
-      body: `We received your report about ${label}.`,
+      title: t("notif.receivedTitle"),
+      body: t("notif.receivedBody", { label }),
       at: report.createdAt,
       unread: !read.has(`${report.id}:received`),
       icon: "check",
     });
 
     if (report.category) {
+      const catLabel = categoryLabel(report.category);
       items.push({
         id: `${report.id}:ai`,
         issueId: report.id,
         kind: "ai",
-        title: "AI Analysis Complete",
-        body: `Categorized as ${formatCategoryLabel(report.category)}${
-          report.severity ? ` · ${report.severity}` : ""
-        }.`,
+        title: t("notif.aiTitle"),
+        body:
+          t("notif.aiBody", { label: catLabel }) +
+          (report.severity ? ` · ${report.severity}` : ""),
         at: report.updatedAt,
         unread: !read.has(`${report.id}:ai`),
         icon: "robot",
@@ -84,8 +88,8 @@ export function buildNotificationItems(
         id: `${report.id}:assigned`,
         issueId: report.id,
         kind: "assigned",
-        title: "Assigned to Crew",
-        body: `A field team has been assigned to ${label}.`,
+        title: t("notif.assignedTitle"),
+        body: t("notif.assignedBody", { label }),
         at: report.updatedAt,
         unread: !read.has(`${report.id}:assigned`),
         icon: "hardhat",
@@ -97,8 +101,8 @@ export function buildNotificationItems(
         id: `${report.id}:in_progress`,
         issueId: report.id,
         kind: "in_progress",
-        title: "Work In Progress",
-        body: `Crews are actively working on ${label}.`,
+        title: t("notif.progressTitle"),
+        body: t("notif.progressBody", { label }),
         at: report.updatedAt,
         unread: !read.has(`${report.id}:in_progress`),
         icon: "hardhat",
@@ -110,8 +114,8 @@ export function buildNotificationItems(
         id: `${report.id}:resolved`,
         issueId: report.id,
         kind: "resolved",
-        title: "Issue Resolved",
-        body: `${label} has been marked resolved.`,
+        title: t("notif.resolvedTitle"),
+        body: t("notif.resolvedBody", { label }),
         at: report.updatedAt,
         unread: !read.has(`${report.id}:resolved`),
         icon: "confirm_check",
@@ -122,8 +126,8 @@ export function buildNotificationItems(
           id: `${report.id}:verify`,
           issueId: report.id,
           kind: "verify",
-          title: "Verification Required",
-          body: `Please confirm whether ${label} looks fixed.`,
+          title: t("notif.verifyTitle"),
+          body: t("notif.verifyBody", { label }),
           at: report.updatedAt,
           unread: !read.has(`${report.id}:verify`),
           icon: "sparkle",

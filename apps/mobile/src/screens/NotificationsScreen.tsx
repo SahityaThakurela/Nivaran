@@ -15,6 +15,7 @@ import { listIssues } from "../api/issues";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
 import { Icon } from "../components/Icon";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import { formatRelativeTime } from "../utils/format";
@@ -30,6 +31,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Notifications">;
 export function NotificationsScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -75,7 +77,7 @@ export function NotificationsScreen() {
         } catch (e) {
           if (!cancelled) {
             setError(
-              e instanceof Error ? e.message : "Failed to load notifications",
+              e instanceof Error ? e.message : t("notif.failedLoad"),
             );
           }
         } finally {
@@ -86,12 +88,12 @@ export function NotificationsScreen() {
       return () => {
         cancelled = true;
       };
-    }, [token]),
+    }, [token, t]),
   );
 
   const items = useMemo(
-    () => buildNotificationItems(reports, verifiedIds, readIds),
-    [reports, verifiedIds, readIds],
+    () => buildNotificationItems(reports, verifiedIds, readIds, t, categoryLabel),
+    [reports, verifiedIds, readIds, t, categoryLabel],
   );
 
   async function markAllRead() {
@@ -104,14 +106,16 @@ export function NotificationsScreen() {
     <View style={styles.screen}>
       <AppHeader
         variant="back"
-        title="Notifications"
+        title={t("notif.title")}
         onBack={() => navigation.goBack()}
         showActions={false}
       />
 
       <View style={styles.toolbar}>
         <Text style={styles.count}>
-          {items.filter((i) => i.unread).length} unread
+          {t("notif.unread", {
+            count: items.filter((i) => i.unread).length,
+          })}
         </Text>
         <Pressable style={styles.readAllBtn} onPress={() => void markAllRead()}>
           <Icon
@@ -120,7 +124,7 @@ export function NotificationsScreen() {
             height={16}
             color={colors.brandBlueDeep}
           />
-          <Text style={styles.readAllText}>Read All</Text>
+          <Text style={styles.readAllText}>{t("notif.readAll")}</Text>
         </Pressable>
       </View>
 
@@ -132,7 +136,7 @@ export function NotificationsScreen() {
       ) : error ? (
         <Text style={styles.empty}>{error}</Text>
       ) : items.length === 0 ? (
-        <Text style={styles.empty}>No notifications yet.</Text>
+        <Text style={styles.empty}>{t("notif.empty")}</Text>
       ) : (
         <ScrollView
           contentContainerStyle={styles.scroll}
@@ -142,6 +146,7 @@ export function NotificationsScreen() {
             <NotificationRow
               key={item.id}
               item={item}
+              verifyLabel={t("notif.verify")}
               onPress={() =>
                 navigation.navigate("TrackIssue", { issueId: item.issueId })
               }
@@ -160,13 +165,16 @@ export function NotificationsScreen() {
 
 function NotificationRow({
   item,
+  verifyLabel,
   onPress,
   onVerify,
 }: {
   item: NotificationItem;
+  verifyLabel: string;
   onPress: () => void;
   onVerify: () => void;
 }) {
+  const { t } = useLanguage();
   const isVerify = item.ctaVerify === true;
 
   return (
@@ -190,10 +198,10 @@ function NotificationRow({
       <View style={styles.body}>
         <Text style={styles.rowTitle}>{item.title}</Text>
         <Text style={styles.rowBody}>{item.body}</Text>
-        <Text style={styles.rowTime}>{formatRelativeTime(item.at)}</Text>
+        <Text style={styles.rowTime}>{formatRelativeTime(item.at, t)}</Text>
         {isVerify ? (
           <Pressable style={styles.verifyBtn} onPress={onVerify}>
-            <Text style={styles.verifyBtnText}>Verify</Text>
+            <Text style={styles.verifyBtnText}>{verifyLabel}</Text>
           </Pressable>
         ) : null}
       </View>

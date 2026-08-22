@@ -16,6 +16,8 @@ import { useAuth } from "../auth/AuthContext";
 import { DEFAULT_CITY_ID } from "../api/config";
 import { AppButton, TextField } from "../components/FormControls";
 import { Icon } from "../components/Icon";
+import { LanguageToggleCompact } from "../components/LanguageToggle";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -26,6 +28,7 @@ export function AuthScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { login, register } = useAuth();
+  const { t } = useLanguage();
 
   const [mode, setMode] = useState<Mode>("login");
   const [name, setName] = useState("");
@@ -42,7 +45,7 @@ export function AuthScreen() {
       if (mode === "signup") {
         const trimmedName = name.trim();
         if (!trimmedName) {
-          setError("Please enter your name.");
+          setError(t("auth.enterName"));
           setBusy(false);
           return;
         }
@@ -62,7 +65,7 @@ export function AuthScreen() {
       }
       navigation.replace("Home");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t("common.somethingWrong"));
     } finally {
       setBusy(false);
     }
@@ -73,14 +76,14 @@ export function AuthScreen() {
     setBusy(true);
     try {
       await register({
-        name: "Citizen",
+        name: t("common.citizen"),
         phone: `c${Date.now()}`,
         password: "citizen123",
         cityId: DEFAULT_CITY_ID,
       });
       navigation.replace("Home");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t("common.somethingWrong"));
     } finally {
       setBusy(false);
     }
@@ -95,6 +98,10 @@ export function AuthScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={styles.langRow}>
+          <LanguageToggleCompact />
+        </View>
+
         <View style={styles.brand}>
           <Image
             source={require("../../assets/images/login-logo.png")}
@@ -102,48 +109,44 @@ export function AuthScreen() {
             resizeMode="cover"
           />
           <Text style={styles.brandName}>NIVARAN</Text>
-          <Text style={styles.tagline}>
-            Make your city better, one report at a time.
-          </Text>
+          <Text style={styles.tagline}>{t("auth.tagline")}</Text>
         </View>
 
         <View style={styles.card}>
           {mode === "signup" ? (
             <TextField
-              label="Name"
+              label={t("auth.name")}
               leftIcon="user"
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
-              placeholder="Your name"
+              placeholder={t("auth.namePlaceholder")}
             />
           ) : null}
 
           <TextField
-            label="Phone / Email"
+            label={t("auth.phoneEmail")}
             leftIcon="user"
             value={identifier}
             onChangeText={setIdentifier}
             autoCapitalize="none"
             keyboardType="email-address"
-            placeholder="phone or email"
+            placeholder={t("auth.phoneEmailPlaceholder")}
           />
 
           <TextField
-            label="Password"
+            label={t("auth.password")}
             leftIcon="lock"
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            placeholder="Password"
+            placeholder={t("auth.password")}
             labelRight={
               mode === "login" ? (
                 <Pressable
-                  onPress={() =>
-                    setError("Password reset isn’t available in the app yet.")
-                  }
+                  onPress={() => setError(t("auth.forgotUnavailable"))}
                 >
-                  <Text style={styles.forgot}>Forgot?</Text>
+                  <Text style={styles.forgot}>{t("auth.forgot")}</Text>
                 </Pressable>
               ) : null
             }
@@ -151,7 +154,9 @@ export function AuthScreen() {
               <Pressable
                 onPress={() => setShowPassword((v) => !v)}
                 style={styles.eyeBtn}
-                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                accessibilityLabel={
+                  showPassword ? t("auth.hidePassword") : t("auth.showPassword")
+                }
               >
                 <Icon name="eye" width={18} height={16} />
               </Pressable>
@@ -161,7 +166,7 @@ export function AuthScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <AppButton
-            label={mode === "signup" ? "Sign up" : "Continue"}
+            label={mode === "signup" ? t("auth.signUp") : t("auth.continue")}
             onPress={() => void handleContinue()}
             iconRight="arrow_right"
             disabled={busy || !identifier.trim() || !password}
@@ -169,12 +174,12 @@ export function AuthScreen() {
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>{t("common.or")}</Text>
             <View style={styles.dividerLine} />
           </View>
 
           <AppButton
-            label="Continue as Citizen"
+            label={t("auth.continueCitizen")}
             variant="secondary"
             onPress={() => void handleCitizen()}
             iconLeft="citizens"
@@ -184,7 +189,7 @@ export function AuthScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+            {mode === "login" ? t("auth.noAccount") : t("auth.hasAccount")}
           </Text>
           <Pressable
             onPress={() => {
@@ -193,7 +198,7 @@ export function AuthScreen() {
             }}
           >
             <Text style={styles.footerLink}>
-              {mode === "login" ? "Sign up" : "Log in"}
+              {mode === "login" ? t("auth.signUp") : t("auth.logIn")}
             </Text>
           </Pressable>
         </View>
@@ -210,6 +215,9 @@ const styles = StyleSheet.create({
   scroll: {
     paddingHorizontal: 24,
     gap: 24,
+  },
+  langRow: {
+    alignItems: "flex-end",
   },
   brand: {
     alignItems: "center",

@@ -18,10 +18,12 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import { StatusBadge } from "../components/StatusBadge";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
-import { formatCategoryLabel, formatRelativeTime } from "../utils/format";
+import { formatRelativeTime } from "../utils/format";
 import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "TrackIssue">;
@@ -34,34 +36,37 @@ type TimelineStep = {
   state: "done" | "current" | "upcoming";
 };
 
-function buildTimeline(report: Report): TimelineStep[] {
+function buildTimeline(
+  report: Report,
+  t: (key: TranslationKey) => string,
+): TimelineStep[] {
   const status = report.status;
   const steps: { key: string; label: string; include: boolean; at?: string }[] = [
     {
       key: "submitted",
-      label: "Submitted",
+      label: t("track.submitted"),
       include: true,
       at: report.createdAt,
     },
     {
       key: "triaged",
-      label: "Triaged by AI",
+      label: t("track.triaged"),
       include: !!report.category,
       at: report.updatedAt,
     },
     {
       key: "assigned",
-      label: "Assigned",
+      label: t("track.assignedShort"),
       include: ["ASSIGNED", "IN_PROGRESS", "RESOLVED"].includes(status),
     },
     {
       key: "in_progress",
-      label: "In Progress",
+      label: t("track.inProgress"),
       include: ["IN_PROGRESS", "RESOLVED"].includes(status),
     },
     {
       key: "resolved",
-      label: "Resolved",
+      label: t("track.resolved"),
       include: status === "RESOLVED",
       at: status === "RESOLVED" ? report.updatedAt : undefined,
     },
@@ -88,6 +93,7 @@ export function TrackIssueScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const { issueId } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
@@ -99,7 +105,7 @@ export function TrackIssueScreen() {
     let cancelled = false;
     async function load() {
       if (!token) {
-        setError("Not signed in");
+        setError(t("track.notSignedIn"));
         setLoading(false);
         return;
       }
@@ -112,7 +118,7 @@ export function TrackIssueScreen() {
         if (!cancelled) setVerified(flag === "1");
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load issue");
+          setError(e instanceof Error ? e.message : t("track.failedLoad"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -122,11 +128,11 @@ export function TrackIssueScreen() {
     return () => {
       cancelled = true;
     };
-  }, [token, issueId]);
+  }, [token, issueId, t]);
 
   const timeline = useMemo(
-    () => (report ? buildTimeline(report) : []),
-    [report],
+    () => (report ? buildTimeline(report, t) : []),
+    [report, t],
   );
 
   function onNav(tab: NavTab) {
@@ -143,7 +149,7 @@ export function TrackIssueScreen() {
     <View style={styles.screen}>
       <AppHeader
         variant="back"
-        title="Track Issue"
+        title={t("track.title")}
         onBack={() => navigation.goBack()}
         onNotifications={() => navigation.navigate("Notifications")}
         onProfile={() => navigation.navigate("Profile")}
@@ -155,7 +161,7 @@ export function TrackIssueScreen() {
           style={{ marginTop: 40 }}
         />
       ) : error || !report ? (
-        <Text style={styles.error}>{error ?? "Issue not found"}</Text>
+        <Text style={styles.error}>{error ?? t("track.notFound")}</Text>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.heroWrap}>
@@ -175,19 +181,17 @@ export function TrackIssueScreen() {
 
           <Text style={styles.title}>
             {report.category
-              ? formatCategoryLabel(report.category)
-              : "Issue"}
+              ? categoryLabel(report.category)
+              : t("common.issue")}
           </Text>
           <Text style={styles.address}>
-            {report.address ?? "Location pending"}
+            {report.address ?? t("common.locationPending")}
           </Text>
 
           {report.isDuplicate && report.duplicateOfId ? (
             <View style={styles.relatedCard}>
-              <Text style={styles.relatedTitle}>Related Issue</Text>
-              <Text style={styles.relatedBody}>
-                This report was marked as a duplicate of an existing issue.
-              </Text>
+              <Text style={styles.relatedTitle}>{t("track.related")}</Text>
+              <Text style={styles.relatedBody}>{t("track.relatedBody")}</Text>
               <Pressable
                 style={styles.relatedBtn}
                 onPress={() =>
@@ -196,7 +200,7 @@ export function TrackIssueScreen() {
                   })
                 }
               >
-                <Text style={styles.relatedBtnText}>View Master Issue</Text>
+                <Text style={styles.relatedBtnText}>{t("track.viewMaster")}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -205,12 +209,16 @@ export function TrackIssueScreen() {
             <View style={styles.aiCard}>
               <View style={styles.aiHeader}>
                 <Icon name="sparkle" width={18} height={18} />
-                <Text style={styles.aiTitle}>AI Insight</Text>
+                <Text style={styles.aiTitle}>{t("track.aiInsight")}</Text>
               </View>
               {report.category ? (
                 <Text style={styles.aiMeta}>
-                  Category: {formatCategoryLabel(report.category)}
-                  {report.severity ? ` · Severity: ${report.severity}` : ""}
+                  {t("track.categoryMeta", {
+                    category: categoryLabel(report.category),
+                  })}
+                  {report.severity
+                    ? t("track.severityMeta", { severity: report.severity })
+                    : ""}
                 </Text>
               ) : null}
               {report.aiSummary ? (
@@ -219,7 +227,7 @@ export function TrackIssueScreen() {
             </View>
           ) : null}
 
-          <Text style={styles.sectionTitle}>Timeline</Text>
+          <Text style={styles.sectionTitle}>{t("track.timeline")}</Text>
           <View style={styles.timeline}>
             {timeline.map((step, index) => (
               <View key={step.key} style={styles.timelineRow}>
@@ -243,7 +251,7 @@ export function TrackIssueScreen() {
                   <Text style={styles.timelineLabel}>{step.label}</Text>
                   {step.at ? (
                     <Text style={styles.timelineAt}>
-                      {formatRelativeTime(step.at)}
+                      {formatRelativeTime(step.at, t)}
                     </Text>
                   ) : null}
                 </View>
@@ -264,7 +272,7 @@ export function TrackIssueScreen() {
                 height={18}
                 color={colors.white}
               />
-              <Text style={styles.verifyBtnText}>Verify Resolution</Text>
+              <Text style={styles.verifyBtnText}>{t("track.verifyCta")}</Text>
             </Pressable>
           ) : null}
         </ScrollView>

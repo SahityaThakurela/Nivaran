@@ -17,18 +17,16 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
-import {
-  formatCategoryLabel,
-  formatRelativeTime,
-  greetingForNow,
-} from "../utils/format";
+import { formatRelativeTime, greetingForNow } from "../utils/format";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
-/** Figma 146:63 palette */
+/** Figma 146:63 / 153:15719 palette */
 const HERO_BLUE = "#2563EB";
 const NAVY = "#121B2E";
 const MUTED = "#434655";
@@ -45,10 +43,10 @@ const PLACEHOLDER_THUMBS = [
   require("../../assets/images/report-thumb-2.png"),
 ];
 
-const PIPELINE: { label: string; icon: IconName }[] = [
-  { label: "Photo", icon: "camera" },
-  { label: "AI", icon: "sparkle" },
-  { label: "Action", icon: "confirm_check" },
+const PIPELINE: { labelKey: TranslationKey; icon: IconName }[] = [
+  { labelKey: "home.pipelinePhoto", icon: "camera" },
+  { labelKey: "home.pipelineAi", icon: "sparkle" },
+  { labelKey: "home.pipelineAction", icon: "confirm_check" },
 ];
 
 type PulseChip = {
@@ -74,10 +72,6 @@ function iconForCategory(category: ReportCategory): IconName {
   return CATEGORY_ICONS[category] ?? "filter";
 }
 
-function issueWord(count: number): string {
-  return count === 1 ? "issue" : "issues";
-}
-
 function accentForStatus(status: ReportStatus | string): string {
   if (status === "RESOLVED") return ACCENT_RESOLVED;
   if (
@@ -90,14 +84,17 @@ function accentForStatus(status: ReportStatus | string): string {
   return HERO_BLUE;
 }
 
-function compactStatus(status: ReportStatus | string): {
+function compactStatus(
+  status: ReportStatus | string,
+  t: (key: TranslationKey) => string,
+): {
   label: string;
   bg: string;
   color: string;
 } {
   if (status === "RESOLVED") {
     return {
-      label: "Resolved",
+      label: t("status.resolved"),
       bg: "rgba(0, 110, 45, 0.1)",
       color: ACCENT_RESOLVED,
     };
@@ -108,13 +105,13 @@ function compactStatus(status: ReportStatus | string): {
     status === "ACKNOWLEDGED"
   ) {
     return {
-      label: "In Progress",
+      label: t("status.inProgress"),
       bg: "rgba(120, 75, 0, 0.1)",
       color: ACCENT_PROGRESS,
     };
   }
   return {
-    label: "Submitted",
+    label: t("status.submitted"),
     bg: "rgba(37, 99, 235, 0.1)",
     color: HERO_BLUE,
   };
@@ -127,12 +124,12 @@ function thisMonth(iso: string): boolean {
 }
 
 /**
- * Home — Figma node 146:63
- * https://www.figma.com/design/NpUzZL5nhEFXRfBckY2xfe/mp--Copy-?node-id=146-63
+ * Home — Figma node 146:63 / 153:15719
  */
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { token, user } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +149,9 @@ export function HomeScreen() {
           if (!cancelled) setReports(list);
         } catch (e) {
           if (!cancelled) {
-            setError(e instanceof Error ? e.message : "Failed to load reports");
+            setError(
+              e instanceof Error ? e.message : t("home.failedLoad"),
+            );
           }
         } finally {
           if (!cancelled) setLoading(false);
@@ -162,7 +161,7 @@ export function HomeScreen() {
       return () => {
         cancelled = true;
       };
-    }, [token]),
+    }, [token, t]),
   );
 
   const stats = useMemo(() => {
@@ -174,7 +173,6 @@ export function HomeScreen() {
     ).length;
     const progress = total === 0 ? 0 : Math.min(1, resolved / total);
 
-    // Tally every categorized report from the API — no hardcoded buckets.
     const byCategory = new Map<ReportCategory, number>();
     for (const report of reports) {
       if (!report.category) continue;
@@ -193,11 +191,17 @@ export function HomeScreen() {
       .sort((a, b) => b.count - a.count);
 
     const top = pulse[0];
+    const issuesWord = total === 1 ? t("common.issue") : t("common.issues");
     const insight = top
-      ? `${formatCategoryLabel(top.category)} accounts for ${top.count} of your ${total} ${issueWord(total)}.`
+      ? t("home.insightTop", {
+          category: categoryLabel(top.category),
+          count: top.count,
+          total,
+          issues: issuesWord,
+        })
       : total > 0
-        ? "Reports are still being classified. Check back shortly for category insights."
-        : "File a report to see category insights here.";
+        ? t("home.insightClassifying")
+        : t("home.insightEmpty");
 
     return {
       total,
@@ -209,7 +213,7 @@ export function HomeScreen() {
       insight,
       recent: reports.slice(0, 2),
     };
-  }, [reports]);
+  }, [reports, t, categoryLabel]);
 
   function goCapture(category?: ReportCategory) {
     navigation.navigate("Capture", category ? { category } : undefined);
@@ -219,7 +223,8 @@ export function HomeScreen() {
     handleTabNavigate(navigation, tab, "home");
   }
 
-  const firstName = user?.name?.trim()?.split(/\s+/)[0] || "Citizen";
+  const firstName =
+    user?.name?.trim()?.split(/\s+/)[0] || t("common.citizen");
 
   return (
     <View style={styles.screen}>
@@ -234,28 +239,25 @@ export function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.greeting}>
-          {greetingForNow()}, {firstName} 👋
+          {greetingForNow(t)}, {firstName} 👋
         </Text>
 
         <View style={styles.locationRow}>
           <Icon name="pin" width={12} height={15} color={HERO_BLUE} />
-          <Text style={styles.locationText}>Sector 62, Noida</Text>
+          <Text style={styles.locationText}>{t("home.location")}</Text>
         </View>
 
         <View style={styles.hero}>
           <View style={styles.aiBadge}>
             <Icon name="sparkle" width={13} height={13} color={colors.white} />
-            <Text style={styles.aiBadgeText}>AI-Powered</Text>
+            <Text style={styles.aiBadgeText}>{t("home.aiPowered")}</Text>
           </View>
 
-          <Text style={styles.heroTitle}>See something that needs fixing?</Text>
-          <Text style={styles.heroSub}>
-            Take a photo and let NIVARAN{"\n"}handle the details.
-          </Text>
+          <Text style={styles.heroTitle}>{t("home.heroTitle")}</Text>
 
           <View style={styles.pipeline}>
             {PIPELINE.map((step, i) => (
-              <View key={step.label} style={styles.pipelineItem}>
+              <View key={step.labelKey} style={styles.pipelineItem}>
                 {i > 0 ? (
                   <Icon
                     name="chevron"
@@ -271,7 +273,7 @@ export function HomeScreen() {
                     height={18}
                     color={colors.white}
                   />
-                  <Text style={styles.pipelineLabel}>{step.label}</Text>
+                  <Text style={styles.pipelineLabel}>{t(step.labelKey)}</Text>
                 </View>
               </View>
             ))}
@@ -280,27 +282,27 @@ export function HomeScreen() {
           <Pressable
             style={styles.heroBtn}
             onPress={() => goCapture()}
-            accessibilityLabel="Report an Issue"
+            accessibilityLabel={t("home.reportIssue")}
           >
             <Icon name="camera" width={20} height={18} color={HERO_BLUE} />
-            <Text style={styles.heroBtnText}>Report an Issue</Text>
+            <Text style={styles.heroBtnText}>{t("home.reportIssue")}</Text>
           </Pressable>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Your City, Your Signal</Text>
+          <Text style={styles.cardTitle}>{t("home.citySignal")}</Text>
           <View style={styles.statsRow}>
             <View style={styles.statLeft}>
               <Text style={styles.statBigBlue}>
                 {stats.resolved.toLocaleString()}
               </Text>
-              <Text style={styles.statUnit}> resolved</Text>
+              <Text style={styles.statUnit}> {t("home.resolved")}</Text>
             </View>
             <View style={styles.statRight}>
               <Text style={styles.statBigNavy}>
                 {stats.reportedMonth.toLocaleString()}
               </Text>
-              <Text style={styles.statMuted}>reported this month</Text>
+              <Text style={styles.statMuted}>{t("home.reportedMonth")}</Text>
             </View>
           </View>
           <View style={styles.track}>
@@ -314,14 +316,12 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Civic Pulse</Text>
-          <Text style={styles.cardSub}>What&apos;s happening near you?</Text>
+          <Text style={styles.cardTitle}>{t("home.civicPulse")}</Text>
+          <Text style={styles.cardSub}>{t("home.civicPulseSub")}</Text>
 
           {stats.pulse.length === 0 ? (
             <Text style={styles.empty}>
-              {stats.total === 0
-                ? "No issues yet — categories will appear after you report."
-                : "Waiting on AI classification for category breakdown."}
+              {stats.total === 0 ? t("home.pulseEmpty") : t("home.pulseWaiting")}
             </Text>
           ) : (
             <View style={styles.chips}>
@@ -338,8 +338,14 @@ export function HomeScreen() {
                     color={NAVY}
                   />
                   <Text style={styles.chipText}>
-                    {chip.count} {formatCategoryLabel(chip.category)}{" "}
-                    {issueWord(chip.count)}
+                    {t("home.pulseChip", {
+                      count: chip.count,
+                      category: categoryLabel(chip.category),
+                      issues:
+                        chip.count === 1
+                          ? t("common.issue")
+                          : t("common.issues"),
+                    })}
                   </Text>
                 </Pressable>
               ))}
@@ -350,7 +356,7 @@ export function HomeScreen() {
             style={styles.exploreRow}
             onPress={() => navigation.navigate("Nearby")}
           >
-            <Text style={styles.exploreText}>Explore nearby issues</Text>
+            <Text style={styles.exploreText}>{t("home.exploreNearby")}</Text>
             <Icon name="chevron" width={8} height={12} color={HERO_BLUE} />
           </Pressable>
         </View>
@@ -366,24 +372,30 @@ export function HomeScreen() {
           </View>
           <Text style={styles.impactText}>
             <Text style={styles.impactStrong}>
-              {stats.resolvedMonth} {issueWord(stats.resolvedMonth)}
+              {t("home.impactPrefix", {
+                count: stats.resolvedMonth,
+                issues:
+                  stats.resolvedMonth === 1
+                    ? t("common.issue")
+                    : t("common.issues"),
+              })}
             </Text>
-            {" have been resolved\nnear you this month."}
+            {t("home.impactSuffix")}
           </Text>
         </View>
 
         <View style={styles.aiCard}>
           <View style={styles.aiHeader}>
             <Icon name="sparkle" width={16} height={16} color={HERO_BLUE} />
-            <Text style={styles.aiTitle}>NIVARAN AI Insight</Text>
+            <Text style={styles.aiTitle}>{t("home.aiInsight")}</Text>
           </View>
           <Text style={styles.aiBody}>{stats.insight}</Text>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Reports</Text>
+          <Text style={styles.sectionTitle}>{t("home.recentReports")}</Text>
           <Pressable onPress={() => navigation.navigate("MyReports")}>
-            <Text style={styles.viewAll}>View All</Text>
+            <Text style={styles.viewAll}>{t("home.viewAll")}</Text>
           </Pressable>
         </View>
 
@@ -395,9 +407,7 @@ export function HomeScreen() {
         ) : error ? (
           <Text style={styles.empty}>{error}</Text>
         ) : stats.recent.length === 0 ? (
-          <Text style={styles.empty}>
-            No reports yet. Tap Report an Issue to file your first one.
-          </Text>
+          <Text style={styles.empty}>{t("home.noReports")}</Text>
         ) : (
           <View style={styles.reportList}>
             {stats.recent.map((report, index) => (
@@ -430,11 +440,12 @@ function RecentCard({
   thumbFallback: number;
   onPress: () => void;
 }) {
+  const { t, categoryLabel } = useLanguage();
   const title = report.category
-    ? formatCategoryLabel(report.category)
-    : report.description.slice(0, 40) || "Issue";
+    ? categoryLabel(report.category)
+    : report.description.slice(0, 40) || t("common.issue");
   const photo = report.photoUrls[0];
-  const status = compactStatus(report.status);
+  const status = compactStatus(report.status, t);
   const accent = accentForStatus(report.status);
   const useIconThumb = !photo && report.category === "DRAINAGE";
 
@@ -463,7 +474,7 @@ function RecentCard({
             </Text>
           </View>
           <Text style={styles.reportTime}>
-            · {formatRelativeTime(report.createdAt)}
+            · {formatRelativeTime(report.createdAt, t)}
           </Text>
         </View>
       </View>
@@ -535,14 +546,7 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: colors.white,
     textAlign: "center",
-  },
-  heroSub: {
-    fontFamily: fonts.Inter_400Regular,
-    fontSize: 16,
-    lineHeight: 24,
-    color: "rgba(255,255,255,0.9)",
-    textAlign: "center",
-    marginBottom: 8,
+    marginBottom: 4,
   },
   pipeline: {
     flexDirection: "row",
@@ -550,10 +554,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 10,
     backgroundColor: "rgba(255,255,255,0.1)",
-    borderRadius: 8,
-    paddingHorizontal: 16,
+    borderRadius: 9999,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     marginBottom: 8,
+    overflow: "hidden",
   },
   pipelineItem: {
     flexDirection: "row",

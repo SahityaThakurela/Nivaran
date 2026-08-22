@@ -20,9 +20,9 @@ import { getIssue } from "../api/issues";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
 import { Icon } from "../components/Icon";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
-import { formatCategoryLabel } from "../utils/format";
 import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "VerifyResolution">;
@@ -32,6 +32,7 @@ export function VerifyResolutionScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const { issueId } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
@@ -43,7 +44,7 @@ export function VerifyResolutionScreen() {
     let cancelled = false;
     async function load() {
       if (!token) {
-        setError("Not signed in");
+        setError(t("verify.notSignedIn"));
         setLoading(false);
         return;
       }
@@ -54,7 +55,7 @@ export function VerifyResolutionScreen() {
         if (!cancelled) setReport(data);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load issue");
+          setError(e instanceof Error ? e.message : t("verify.failedLoad"));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -64,7 +65,7 @@ export function VerifyResolutionScreen() {
     return () => {
       cancelled = true;
     };
-  }, [token, issueId]);
+  }, [token, issueId, t]);
 
   async function onConfirm() {
     setSaving(true);
@@ -93,7 +94,7 @@ export function VerifyResolutionScreen() {
     <View style={styles.screen}>
       <AppHeader
         variant="back"
-        title="Verify Resolution"
+        title={t("verify.title")}
         onBack={() => navigation.goBack()}
         showActions={false}
       />
@@ -104,7 +105,7 @@ export function VerifyResolutionScreen() {
           style={{ marginTop: 40 }}
         />
       ) : error || !report ? (
-        <Text style={styles.error}>{error ?? "Issue not found"}</Text>
+        <Text style={styles.error}>{error ?? t("verify.notFound")}</Text>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
           <View style={styles.banner}>
@@ -114,23 +115,21 @@ export function VerifyResolutionScreen() {
               height={20}
               color={colors.resolvedDark}
             />
-            <Text style={styles.bannerText}>
-              Crew marked this issue as resolved. Does it look fixed?
-            </Text>
+            <Text style={styles.bannerText}>{t("verify.banner")}</Text>
           </View>
 
           <Text style={styles.issueTitle}>
             {report.category
-              ? formatCategoryLabel(report.category)
-              : "Issue"}
+              ? categoryLabel(report.category)
+              : t("common.issue")}
           </Text>
           <Text style={styles.address}>
-            {report.address ?? "Location pending"}
+            {report.address ?? t("common.locationPending")}
           </Text>
 
           <View style={styles.compare}>
             <View style={styles.photoCol}>
-              <Text style={styles.photoLabel}>Before</Text>
+              <Text style={styles.photoLabel}>{t("verify.before")}</Text>
               <Image
                 source={beforeSource}
                 style={styles.photo}
@@ -138,7 +137,7 @@ export function VerifyResolutionScreen() {
               />
             </View>
             <View style={styles.photoCol}>
-              <Text style={styles.photoLabel}>After</Text>
+              <Text style={styles.photoLabel}>{t("verify.after")}</Text>
               <Image
                 source={afterSource}
                 style={styles.photo}
@@ -159,7 +158,7 @@ export function VerifyResolutionScreen() {
               color={colors.white}
             />
             <Text style={styles.confirmText}>
-              {saving ? "Saving…" : "Confirm Fixed"}
+              {saving ? t("verify.saving") : t("verify.confirmFixed")}
             </Text>
           </Pressable>
 
@@ -170,7 +169,7 @@ export function VerifyResolutionScreen() {
               height={14}
               color={colors.unresolvedText}
             />
-            <Text style={styles.unresolvedText}>Still Unresolved</Text>
+            <Text style={styles.unresolvedText}>{t("verify.stillUnresolved")}</Text>
           </Pressable>
         </ScrollView>
       )}

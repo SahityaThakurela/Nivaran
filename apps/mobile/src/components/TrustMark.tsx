@@ -1,10 +1,12 @@
 import { Image, StyleSheet, Text, View } from "react-native";
+import { useLanguage } from "../i18n/LanguageContext";
 import { spacing, typography } from "../theme/tokens";
 
 /**
  * Footer trust mark from Figma nodes 53:7074–53:7078.
  */
 export function TrustMark() {
+  const { t } = useLanguage();
   return (
     <View style={styles.row} accessibilityRole="text">
       <Image
@@ -12,7 +14,7 @@ export function TrustMark() {
         style={styles.icon}
         resizeMode="contain"
       />
-      <Text style={styles.label}>Civic Intelligence Platform</Text>
+      <Text style={styles.label}>{t("landing.trust")}</Text>
     </View>
   );
 }

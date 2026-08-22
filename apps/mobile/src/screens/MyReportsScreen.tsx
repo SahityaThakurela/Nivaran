@@ -18,14 +18,11 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import { StatusBadge } from "../components/StatusBadge";
+import { useLanguage } from "../i18n/LanguageContext";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
-import {
-  formatCategoryLabel,
-  formatRelativeTime,
-  reportProgressStep,
-} from "../utils/format";
+import { formatRelativeTime, reportProgressStep } from "../utils/format";
 import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MyReports">;
@@ -46,6 +43,7 @@ function isActive(status: ReportStatus): boolean {
 export function MyReportsScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -86,7 +84,7 @@ export function MyReportsScreen() {
           }
         } catch (e) {
           if (!cancelled) {
-            setError(e instanceof Error ? e.message : "Failed to load reports");
+            setError(e instanceof Error ? e.message : t("reports.failedLoad"));
           }
         } finally {
           if (!cancelled) setLoading(false);
@@ -96,7 +94,7 @@ export function MyReportsScreen() {
       return () => {
         cancelled = true;
       };
-    }, [token]),
+    }, [token, t]),
   );
 
   const stats = useMemo(() => {
@@ -130,21 +128,25 @@ export function MyReportsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.titleRow}>
-          <Text style={styles.title}>My Reports</Text>
+          <Text style={styles.title}>{t("reports.title")}</Text>
           <Pressable
             style={styles.newBtn}
             onPress={() => navigation.navigate("Capture")}
           >
             <Icon name="nav_plus" width={14} height={14} color={colors.white} />
-            <Text style={styles.newBtnText}>New Report</Text>
+            <Text style={styles.newBtnText}>{t("reports.new")}</Text>
           </Pressable>
         </View>
 
         <View style={styles.statsRow}>
-          <StatCard label="Total" value={stats.total} />
-          <StatCard label="Active" value={stats.active} accent={colors.mustard} />
+          <StatCard label={t("reports.total")} value={stats.total} />
           <StatCard
-            label="Resolved"
+            label={t("reports.active")}
+            value={stats.active}
+            accent={colors.mustard}
+          />
+          <StatCard
+            label={t("reports.resolved")}
             value={stats.resolved}
             accent={colors.brandBlueDeep}
           />
@@ -153,9 +155,9 @@ export function MyReportsScreen() {
         <View style={styles.segment}>
           {(
             [
-              { key: "all", label: "All" },
-              { key: "active", label: "Active" },
-              { key: "resolved", label: "Resolved" },
+              { key: "all", label: t("reports.all") },
+              { key: "active", label: t("reports.active") },
+              { key: "resolved", label: t("reports.resolved") },
             ] as const
           ).map((tab) => {
             const selected = filter === tab.key;
@@ -186,13 +188,15 @@ export function MyReportsScreen() {
         ) : error ? (
           <Text style={styles.empty}>{error}</Text>
         ) : filtered.length === 0 ? (
-          <Text style={styles.empty}>No reports in this filter.</Text>
+          <Text style={styles.empty}>{t("reports.empty")}</Text>
         ) : (
           <View style={styles.list}>
             {filtered.map((report, index) => (
               <ReportCard
                 key={report.id}
                 report={report}
+                categoryLabel={categoryLabel}
+                t={t}
                 thumbFallback={
                   PLACEHOLDER_THUMBS[index % PLACEHOLDER_THUMBS.length]
                 }
@@ -245,16 +249,23 @@ function ReportCard({
   needsVerify,
   onPress,
   onVerify,
+  categoryLabel,
+  t,
 }: {
   report: Report;
   thumbFallback: number;
   needsVerify: boolean;
   onPress: () => void;
   onVerify: () => void;
+  categoryLabel: (category: string) => string;
+  t: (
+    key: import("../i18n/translations").TranslationKey,
+    params?: Record<string, string | number>,
+  ) => string;
 }) {
   const title = report.category
-    ? formatCategoryLabel(report.category)
-    : report.description.slice(0, 40) || "Issue";
+    ? categoryLabel(report.category)
+    : report.description.slice(0, 40) || t("reports.issue");
   const photo = report.photoUrls[0];
   const progress = reportProgressStep(report.status);
   const resolved = report.status === "RESOLVED";
@@ -286,19 +297,24 @@ function ReportCard({
           style={[styles.cardMeta, (resolved || inProgress) && styles.cardMetaLight]}
           numberOfLines={1}
         >
-          {report.address ?? "Location pending"} ·{" "}
-          {formatRelativeTime(report.updatedAt)}
+          {report.address ?? t("common.locationPending")} ·{" "}
+          {formatRelativeTime(report.updatedAt, t)}
         </Text>
         {resolved || inProgress ? (
           <Text style={styles.progressText}>
-            Step {progress.step}/{progress.total}
+            {t("reports.step", {
+              step: progress.step,
+              total: progress.total,
+            })}
           </Text>
         ) : (
           <StatusBadge status={report.status} />
         )}
         {needsVerify ? (
           <Pressable style={styles.verifyChip} onPress={onVerify}>
-            <Text style={styles.verifyChipText}>Verify resolution</Text>
+            <Text style={styles.verifyChipText}>
+              {t("reports.verifyResolution")}
+            </Text>
           </Pressable>
         ) : null}
       </View>

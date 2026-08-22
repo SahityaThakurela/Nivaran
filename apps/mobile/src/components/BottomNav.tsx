@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import { colors, fonts } from "../theme/tokens";
 import type { IconName } from "./iconAssets";
 import { Icon } from "./Icon";
@@ -13,17 +15,18 @@ type BottomNavProps = {
 
 const SIDE_TABS: {
   key: Exclude<NavTab, "report">;
-  label: string;
+  labelKey: TranslationKey;
   icon: IconName;
 }[] = [
-  { key: "home", label: "Home", icon: "nav_home" },
-  { key: "reports", label: "Reports", icon: "nav_reports" },
-  { key: "nearby", label: "Nearby", icon: "nav_nearby" },
-  { key: "profile", label: "Profile", icon: "nav_profile" },
+  { key: "home", labelKey: "nav.home", icon: "nav_home" },
+  { key: "reports", labelKey: "nav.reports", icon: "nav_reports" },
+  { key: "nearby", labelKey: "nav.nearby", icon: "nav_nearby" },
+  { key: "profile", labelKey: "nav.profile", icon: "nav_profile" },
 ];
 
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const left = SIDE_TABS.slice(0, 2);
   const right = SIDE_TABS.slice(2);
 
@@ -33,7 +36,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
         {left.map((tab) => (
           <TabButton
             key={tab.key}
-            label={tab.label}
+            label={t(tab.labelKey)}
             icon={tab.icon}
             active={active === tab.key}
             onPress={() => onNavigate(tab.key)}
@@ -47,7 +50,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
               styles.reportBtn,
               pressed ? styles.pressed : null,
             ]}
-            accessibilityLabel="Report"
+            accessibilityLabel={t("nav.report")}
           >
             <Icon name="nav_plus" width={20} height={20} color={colors.white} />
           </Pressable>
@@ -56,7 +59,7 @@ export function BottomNav({ active, onNavigate }: BottomNavProps) {
         {right.map((tab) => (
           <TabButton
             key={tab.key}
-            label={tab.label}
+            label={t(tab.labelKey)}
             icon={tab.icon}
             active={active === tab.key}
             onPress={() => onNavigate(tab.key)}

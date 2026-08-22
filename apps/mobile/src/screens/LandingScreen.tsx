@@ -8,6 +8,7 @@ import { LoadingIndicator } from "../components/LoadingIndicator";
 import { LogoMark, logoCardShadow } from "../components/LogoMark";
 import { Tagline, type TaglinePhase } from "../components/Tagline";
 import { TrustMark } from "../components/TrustMark";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, spacing, typography } from "../theme/tokens";
 
@@ -26,6 +27,7 @@ const MIN_DISPLAY_MS = PHASE_MS * PHASES.length;
 export function LandingScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
+  const { t } = useLanguage();
   const [progress, setProgress] = useState(0.12);
   const [phase, setPhase] = useState<TaglinePhase>("report");
   const [apiHint, setApiHint] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function LandingScreen() {
       if (cancelled) return;
 
       if (!healthOk) {
-        setApiHint("API offline — continuing to sign in.");
+        setApiHint(t("landing.apiOffline"));
       }
 
       const elapsed = Date.now() - started;
@@ -83,7 +85,7 @@ export function LandingScreen() {
       cancelled = true;
       clearInterval(phaseTimer);
     };
-  }, [navigation, token]);
+  }, [navigation, token, t]);
 
   return (
     <View style={styles.screen} accessibilityLabel="Nivaran landing">

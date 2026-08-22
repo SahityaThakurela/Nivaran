@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "react-native";
 import type { ReportStatus } from "../api/types";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import { colors, fonts } from "../theme/tokens";
 
 type StatusBadgeProps = {
@@ -13,7 +15,9 @@ type BadgeStyle = {
   label: string;
 };
 
-function stylesForStatus(status: ReportStatus | string): BadgeStyle {
+type TFn = (key: TranslationKey) => string;
+
+function stylesForStatus(status: ReportStatus | string, t: TFn): BadgeStyle {
   switch (status) {
     case "IN_PROGRESS":
     case "ASSIGNED":
@@ -22,21 +26,35 @@ function stylesForStatus(status: ReportStatus | string): BadgeStyle {
         bg: colors.statusProgressBg,
         dot: colors.statusProgressDot,
         text: colors.statusProgressText,
-        label: "In Progress",
+        label: t("status.inProgress"),
       };
     case "RESOLVED":
       return {
         bg: colors.statusResolvedBg,
         dot: colors.statusResolvedDot,
         text: colors.statusResolvedText,
-        label: "Resolved",
+        label: t("status.resolved"),
       };
     case "SUBMITTED":
       return {
         bg: colors.softBlue,
         dot: colors.brandBlueDeep,
         text: colors.brandBlueDeep,
-        label: "Pending",
+        label: t("status.pending"),
+      };
+    case "REJECTED":
+      return {
+        bg: colors.unresolvedBg,
+        dot: colors.danger,
+        text: colors.unresolvedText,
+        label: t("status.rejected"),
+      };
+    case "DUPLICATE":
+      return {
+        bg: colors.softBlueAlt,
+        dot: colors.bodyMuted,
+        text: colors.bodyMuted,
+        label: t("status.duplicate"),
       };
     default:
       return {
@@ -49,7 +67,8 @@ function stylesForStatus(status: ReportStatus | string): BadgeStyle {
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const s = stylesForStatus(status);
+  const { t } = useLanguage();
+  const s = stylesForStatus(status, t);
   return (
     <View style={[styles.badge, { backgroundColor: s.bg }]}>
       <View style={[styles.dot, { backgroundColor: s.dot }]} />

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../components/Icon";
+import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -22,12 +23,17 @@ export function CaptureScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const category = route.params?.category;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [address, setAddress] = useState("Locating…");
-  const locationRef = useRef({ latitude: 0, longitude: 0, address: "Locating…" });
+  const [address, setAddress] = useState(() => t("capture.locating"));
+  const locationRef = useRef({
+    latitude: 0,
+    longitude: 0,
+    address: t("capture.locating"),
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -36,8 +42,9 @@ export function CaptureScreen() {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
           if (!cancelled) {
-            setAddress("Location permission denied");
-            locationRef.current.address = "Location permission denied";
+            const msg = t("capture.permissionDenied");
+            setAddress(msg);
+            locationRef.current.address = msg;
           }
           return;
         }
@@ -70,8 +77,9 @@ export function CaptureScreen() {
         }
       } catch {
         if (!cancelled) {
-          setAddress("Unable to get location");
-          locationRef.current.address = "Unable to get location";
+          const msg = t("capture.unableLocation");
+          setAddress(msg);
+          locationRef.current.address = msg;
         }
       }
     }
@@ -79,7 +87,7 @@ export function CaptureScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   function goToDetails(photoUri: string) {
     const loc = locationRef.current;
@@ -87,7 +95,8 @@ export function CaptureScreen() {
       photoUri,
       latitude: loc.latitude,
       longitude: loc.longitude,
-      address: loc.address === "Locating…" ? undefined : loc.address,
+      address:
+        loc.address === t("capture.locating") ? undefined : loc.address,
       category,
     });
   }
@@ -98,7 +107,7 @@ export function CaptureScreen() {
     try {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) {
-        setError("Camera permission is required to take a photo.");
+        setError(t("capture.cameraPermission"));
         return;
       }
       const result = await ImagePicker.launchCameraAsync({
@@ -120,7 +129,7 @@ export function CaptureScreen() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        setError("Gallery permission is required to choose a photo.");
+        setError(t("capture.galleryPermission"));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -144,12 +153,12 @@ export function CaptureScreen() {
         <Pressable
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
-          accessibilityLabel="Go back"
+          accessibilityLabel={t("common.goBack")}
           disabled={busy}
         >
           <Icon name="back" width={16} height={16} color={colors.white} />
         </Pressable>
-        <Text style={styles.title}>Report a Problem</Text>
+        <Text style={styles.title}>{t("capture.title")}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -157,10 +166,8 @@ export function CaptureScreen() {
         <View style={styles.heroIcon}>
           <Icon name="camera" width={28} height={24} color={colors.white} />
         </View>
-        <Text style={styles.heading}>Add a photo of the issue</Text>
-        <Text style={styles.hint}>
-          Take a new picture or pick one from your gallery.
-        </Text>
+        <Text style={styles.heading}>{t("capture.heading")}</Text>
+        <Text style={styles.hint}>{t("capture.hint")}</Text>
 
         {busy ? (
           <ActivityIndicator color={colors.white} size="large" style={{ marginTop: 12 }} />
@@ -169,19 +176,19 @@ export function CaptureScreen() {
             <Pressable
               onPress={() => void openCamera()}
               style={styles.primaryBtn}
-              accessibilityLabel="Take photo"
+              accessibilityLabel={t("capture.takePhoto")}
             >
               <Icon name="camera" width={20} height={18} color={colors.heroBlue} />
-              <Text style={styles.primaryBtnText}>Take photo</Text>
+              <Text style={styles.primaryBtnText}>{t("capture.takePhoto")}</Text>
             </Pressable>
 
             <Pressable
               onPress={() => void openGallery()}
               style={styles.secondaryBtn}
-              accessibilityLabel="Choose from gallery"
+              accessibilityLabel={t("capture.gallery")}
             >
               <Icon name="gallery" width={20} height={20} color={colors.white} />
-              <Text style={styles.secondaryBtnText}>Choose from gallery</Text>
+              <Text style={styles.secondaryBtnText}>{t("capture.gallery")}</Text>
             </Pressable>
           </View>
         )}

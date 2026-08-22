@@ -19,12 +19,13 @@ import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import { OsmNearbyMap } from "../components/OsmNearbyMap";
 import { StatusBadge } from "../components/StatusBadge";
+import { useLanguage } from "../i18n/LanguageContext";
+import type { TranslationKey } from "../i18n/translations";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import {
   distanceMeters,
-  formatCategoryLabel,
   formatDistance,
   formatRelativeTime,
 } from "../utils/format";
@@ -35,7 +36,11 @@ type LocatedReport = Report & { distance: number };
 
 const FALLBACK_THUMB = require("../../assets/images/nearby-thumb.png");
 
-function reportTitle(report: Report): string {
+function reportTitle(
+  report: Report,
+  categoryLabel: (category: string) => string,
+  issueFallback: string,
+): string {
   const stripped = report.description.replace(/^\[[A-Z_]+\]\s*/, "").trim();
   if (stripped.length > 0) {
     return stripped.length > 42 ? `${stripped.slice(0, 42)}…` : stripped;
@@ -45,28 +50,31 @@ function reportTitle(report: Report): string {
       ? `${report.aiSummary.slice(0, 42)}…`
       : report.aiSummary;
   }
-  return report.category ? formatCategoryLabel(report.category) : "Issue";
+  return report.category ? categoryLabel(report.category) : issueFallback;
 }
 
-function statusMeta(status: ReportStatus): { label: string; dot: string; text: string } {
+function statusMeta(
+  status: ReportStatus,
+  t: (key: TranslationKey) => string,
+): { label: string; dot: string; text: string } {
   switch (status) {
     case "IN_PROGRESS":
     case "ASSIGNED":
     case "ACKNOWLEDGED":
       return {
-        label: "In Progress",
+        label: t("status.inProgress"),
         dot: colors.statusProgressDot,
         text: colors.statusProgressText,
       };
     case "RESOLVED":
       return {
-        label: "Resolved",
+        label: t("status.resolved"),
         dot: colors.statusResolvedDot,
         text: colors.statusResolvedText,
       };
     case "SUBMITTED":
       return {
-        label: "Pending",
+        label: t("status.pending"),
         dot: colors.brandBlueDeep,
         text: colors.brandBlueDeep,
       };
@@ -82,6 +90,7 @@ function statusMeta(status: ReportStatus): { label: string; dot: string; text: s
 export function NearbyScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
+  const { t, categoryLabel } = useLanguage();
   const [reports, setReports] = useState<LocatedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,7 +146,7 @@ export function NearbyScreen() {
           });
         } catch (e) {
           if (!cancelled) {
-            setError(e instanceof Error ? e.message : "Failed to load nearby");
+            setError(e instanceof Error ? e.message : t("nearby.failedLoad"));
           }
         } finally {
           if (!cancelled) setLoading(false);
@@ -147,7 +156,7 @@ export function NearbyScreen() {
       return () => {
         cancelled = true;
       };
-    }, [token]),
+    }, [token, t]),
   );
 
   const selected = useMemo(
@@ -190,11 +199,9 @@ export function NearbyScreen() {
         scrollEnabled={!mapInteracting}
         nestedScrollEnabled
       >
-        <Text style={styles.title}>Nearby Issues</Text>
+        <Text style={styles.title}>{t("nearby.title")}</Text>
         <Text style={styles.subtitle}>
-          {userLoc
-            ? "Sorted by distance from your location"
-            : "Enable location for accurate distances"}
+          {userLoc ? t("nearby.sorted") : t("nearby.enableLocation")}
         </Text>
 
         <View style={styles.mapArea}>
@@ -208,7 +215,7 @@ export function NearbyScreen() {
           />
           {reports.length === 0 && !loading ? (
             <View style={styles.mapEmptyOverlay} pointerEvents="none">
-              <Text style={styles.mapEmpty}>No reports to map yet</Text>
+              <Text style={styles.mapEmpty}>{t("nearby.mapEmpty")}</Text>
             </View>
           ) : null}
         </View>
@@ -237,17 +244,21 @@ export function NearbyScreen() {
                   />
                   <View style={styles.sheetBody}>
                     <Text style={styles.sheetTitle} numberOfLines={1}>
-                      {reportTitle(selected)}
+                      {reportTitle(
+                        selected,
+                        categoryLabel,
+                        t("nearby.issue"),
+                      )}
                     </Text>
                     <Text style={styles.sheetMeta} numberOfLines={1}>
-                      {formatDistance(selected.distance)} ·{" "}
-                      {formatRelativeTime(selected.updatedAt)}
+                      {formatDistance(selected.distance, t)} ·{" "}
+                      {formatRelativeTime(selected.updatedAt, t)}
                     </Text>
                     <StatusBadge status={selected.status} />
                   </View>
                 </View>
                 <Text style={styles.sheetAddress} numberOfLines={2}>
-                  {selected.address ?? "Location pending"}
+                  {selected.address ?? t("common.locationPending")}
                 </Text>
                 <Pressable
                   style={styles.detailsBtn}
@@ -257,17 +268,20 @@ export function NearbyScreen() {
                     })
                   }
                 >
-                  <Text style={styles.detailsBtnText}>View Details</Text>
+                  <Text style={styles.detailsBtnText}>
+                    {t("nearby.viewDetails")}
+                  </Text>
                 </Pressable>
               </View>
             ) : null}
 
-            <Text style={styles.listHeading}>Closest first</Text>
+            <Text style={styles.listHeading}>{t("nearby.closest")}</Text>
             <View style={styles.list}>
               {reports.map((report) => {
-                const status = statusMeta(report.status);
+                const status = statusMeta(report.status, t);
                 const place =
-                  report.address?.split(",")[0]?.trim() || "Nearby location";
+                  report.address?.split(",")[0]?.trim() ||
+                  t("nearby.location");
                 const photo = report.photoUrls[0];
 
                 return (
@@ -288,7 +302,11 @@ export function NearbyScreen() {
                     <View style={styles.listBody}>
                       <View style={styles.listTopRow}>
                         <Text style={styles.listTitleText} numberOfLines={1}>
-                          {reportTitle(report)}
+                          {reportTitle(
+                            report,
+                            categoryLabel,
+                            t("nearby.issue"),
+                          )}
                         </Text>
                         <View style={styles.statusInline}>
                           <View
@@ -308,7 +326,7 @@ export function NearbyScreen() {
                           color={colors.textSecondary}
                         />
                         <Text style={styles.listMetaText} numberOfLines={1}>
-                          {formatDistance(report.distance)} · {place}
+                          {formatDistance(report.distance, t)} · {place}
                         </Text>
                       </View>
                     </View>
