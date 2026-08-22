@@ -4,27 +4,20 @@ import * as Location from "expo-location";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-import MapView, {
-  Marker,
-  type MapPressEvent,
-  type Region,
-} from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppHeader } from "../components/AppHeader";
 import { AppButton } from "../components/FormControls";
 import { Icon } from "../components/Icon";
+import { OsmMapPicker, type OsmMapPickerHandle } from "../components/OsmMapPicker";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "AdjustMap">;
 type Route = RouteProp<RootStackParamList, "AdjustMap">;
-
-const DELTA = 0.004;
 
 async function labelForCoords(
   latitude: number,
@@ -57,14 +50,14 @@ export function AdjustMapScreen() {
     route.params;
 
   const [pin, setPin] = useState({
-    latitude: initialLat || 18.5204,
-    longitude: initialLng || 73.8567,
+    latitude: initialLat || 28.5355,
+    longitude: initialLng || 77.391,
   });
   const [address, setAddress] = useState("Move the pin to the exact spot");
   const [busy, setBusy] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
-  const mapRef = useRef<MapView>(null);
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mapRef = useRef<OsmMapPickerHandle>(null);
 
   const scheduleGeocode = useCallback((latitude: number, longitude: number) => {
     if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
@@ -82,11 +75,6 @@ export function AdjustMapScreen() {
     scheduleGeocode(latitude, longitude);
   }
 
-  function onMapPress(e: MapPressEvent) {
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-    movePin(latitude, longitude);
-  }
-
   async function onUseMyLocation() {
     setBusy(true);
     try {
@@ -95,19 +83,8 @@ export function AdjustMapScreen() {
       const pos = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
       });
-      const next = {
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      };
-      movePin(next.latitude, next.longitude);
-      mapRef.current?.animateToRegion(
-        {
-          ...next,
-          latitudeDelta: DELTA,
-          longitudeDelta: DELTA,
-        },
-        400,
-      );
+      movePin(pos.coords.latitude, pos.coords.longitude);
+      mapRef.current?.moveTo(pos.coords.latitude, pos.coords.longitude);
     } finally {
       setBusy(false);
     }
@@ -136,13 +113,6 @@ export function AdjustMapScreen() {
     }
   }
 
-  const initialRegion: Region = {
-    latitude: pin.latitude,
-    longitude: pin.longitude,
-    latitudeDelta: DELTA,
-    longitudeDelta: DELTA,
-  };
-
   return (
     <View style={styles.screen}>
       <AppHeader
@@ -153,26 +123,12 @@ export function AdjustMapScreen() {
       />
 
       <View style={styles.mapWrap}>
-        <MapView
+        <OsmMapPicker
           ref={mapRef}
-          style={StyleSheet.absoluteFill}
-          initialRegion={initialRegion}
-          onPress={onMapPress}
-          showsUserLocation
-          showsMyLocationButton={Platform.OS === "android"}
-          mapType="standard"
-        >
-          <Marker
-            coordinate={pin}
-            draggable
-            onDragEnd={(e) => {
-              const { latitude, longitude } = e.nativeEvent.coordinate;
-              movePin(latitude, longitude);
-            }}
-            title="Issue location"
-            description="Drag to adjust"
-          />
-        </MapView>
+          latitude={pin.latitude}
+          longitude={pin.longitude}
+          onMove={movePin}
+        />
 
         <View style={styles.hint}>
           <Icon name="pin" width={12} height={15} color={colors.brandBlueDeep} />
