@@ -137,7 +137,7 @@ export function ReportDetailsScreen() {
         address,
         photoUrls: [photoUri],
       });
-      navigation.replace("TrackIssue", { issueId: report.id });
+      navigation.replace("ReportSubmitted", { issueId: report.id });
     } catch (e) {
       setError(e instanceof Error ? e.message : t("details.failedSubmit"));
     } finally {

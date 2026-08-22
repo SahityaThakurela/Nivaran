@@ -11,6 +11,7 @@ import { NearbyScreen } from "../screens/NearbyScreen";
 import { NotificationsScreen } from "../screens/NotificationsScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { ReportDetailsScreen } from "../screens/ReportDetailsScreen";
+import { ReportSubmittedScreen } from "../screens/ReportSubmittedScreen";
 import { TrackIssueScreen } from "../screens/TrackIssueScreen";
 import { VerifyResolutionScreen } from "../screens/VerifyResolutionScreen";
 import type { RootStackParamList } from "./types";
@@ -43,6 +44,7 @@ export function RootNavigator() {
       <Stack.Screen name="Capture" component={CaptureScreen} />
       <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
       <Stack.Screen name="AdjustMap" component={AdjustMapScreen} />
+      <Stack.Screen name="ReportSubmitted" component={ReportSubmittedScreen} />
       <Stack.Screen name="TrackIssue" component={TrackIssueScreen} />
       <Stack.Screen name="VerifyResolution" component={VerifyResolutionScreen} />
     </Stack.Navigator>
