@@ -23,9 +23,9 @@ export function CaptureScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const category = route.params?.category;
-  const cameraLaunched = useRef(false);
 
-  const [busy, setBusy] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState("Locating…");
   const locationRef = useRef({ latitude: 0, longitude: 0, address: "Locating…" });
 
@@ -93,57 +93,50 @@ export function CaptureScreen() {
   }
 
   async function openCamera() {
+    setError(null);
     setBusy(true);
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        setError("Camera permission is required to take a photo.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.85,
+        allowsEditing: false,
+      });
+      if (!result.canceled && result.assets[0]?.uri) {
+        goToDetails(result.assets[0].uri);
+        return;
+      }
+    } finally {
       setBusy(false);
-      return false;
     }
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.85,
-      allowsEditing: false,
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      goToDetails(result.assets[0].uri);
-      return true;
-    }
-    setBusy(false);
-    return false;
   }
 
   async function openGallery() {
+    setError(null);
     setBusy(true);
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      setBusy(false);
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      quality: 0.85,
-      allowsEditing: false,
-      mediaTypes: ["images"],
-    });
-    if (!result.canceled && result.assets[0]?.uri) {
-      goToDetails(result.assets[0].uri);
-      return;
-    }
-    setBusy(false);
-  }
-
-  // Open the system camera as soon as this screen mounts — no sample image.
-  useEffect(() => {
-    if (cameraLaunched.current) return;
-    cameraLaunched.current = true;
-
-    void (async () => {
-      const tookPhoto = await openCamera();
-      if (!tookPhoto && navigation.canGoBack()) {
-        // User cancelled or denied camera — leave Capture instead of showing a fake preview.
-        navigation.goBack();
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        setError("Gallery permission is required to choose a photo.");
+        return;
       }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- launch once on mount
-  }, []);
+      const result = await ImagePicker.launchImageLibraryAsync({
+        quality: 0.85,
+        allowsEditing: false,
+        mediaTypes: ["images"],
+        selectionLimit: 1,
+      });
+      if (!result.canceled && result.assets[0]?.uri) {
+        goToDetails(result.assets[0].uri);
+        return;
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <View style={styles.screen}>
@@ -152,6 +145,7 @@ export function CaptureScreen() {
           onPress={() => navigation.goBack()}
           style={styles.backBtn}
           accessibilityLabel="Go back"
+          disabled={busy}
         >
           <Icon name="back" width={16} height={16} color={colors.white} />
         </Pressable>
@@ -160,34 +154,39 @@ export function CaptureScreen() {
       </View>
 
       <View style={styles.center}>
+        <View style={styles.heroIcon}>
+          <Icon name="camera" width={28} height={24} color={colors.white} />
+        </View>
+        <Text style={styles.heading}>Add a photo of the issue</Text>
+        <Text style={styles.hint}>
+          Take a new picture or pick one from your gallery.
+        </Text>
+
         {busy ? (
-          <>
-            <ActivityIndicator color={colors.white} size="large" />
-            <Text style={styles.hint}>Opening camera…</Text>
-          </>
+          <ActivityIndicator color={colors.white} size="large" style={{ marginTop: 12 }} />
         ) : (
-          <>
-            <Text style={styles.hint}>Take a photo or choose from gallery</Text>
-            <View style={styles.actions}>
-              <Pressable
-                onPress={() => void openCamera()}
-                style={styles.primaryBtn}
-                accessibilityLabel="Open camera"
-              >
-                <Icon name="camera" width={20} height={18} color={colors.heroBlue} />
-                <Text style={styles.primaryBtnText}>Open camera</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => void openGallery()}
-                style={styles.secondaryBtn}
-                accessibilityLabel="Gallery"
-              >
-                <Icon name="gallery" width={20} height={20} color={colors.white} />
-                <Text style={styles.secondaryBtnText}>Gallery</Text>
-              </Pressable>
-            </View>
-          </>
+          <View style={styles.actions}>
+            <Pressable
+              onPress={() => void openCamera()}
+              style={styles.primaryBtn}
+              accessibilityLabel="Take photo"
+            >
+              <Icon name="camera" width={20} height={18} color={colors.heroBlue} />
+              <Text style={styles.primaryBtnText}>Take photo</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => void openGallery()}
+              style={styles.secondaryBtn}
+              accessibilityLabel="Choose from gallery"
+            >
+              <Icon name="gallery" width={20} height={20} color={colors.white} />
+              <Text style={styles.secondaryBtnText}>Choose from gallery</Text>
+            </Pressable>
+          </View>
         )}
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
       </View>
 
       <View style={[styles.addressWrap, { paddingBottom: insets.bottom + 16 }]}>
@@ -231,8 +230,24 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
+    gap: 12,
     paddingHorizontal: 24,
+  },
+  heroIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: "rgba(37, 99, 235, 0.35)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
+  },
+  heading: {
+    fontFamily: fonts.PlusJakartaSans_600SemiBold,
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.white,
+    textAlign: "center",
   },
   hint: {
     fontFamily: fonts.Inter_400Regular,
@@ -240,7 +255,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: colors.white,
     textAlign: "center",
-    opacity: 0.85,
+    opacity: 0.8,
+    marginBottom: 8,
   },
   actions: {
     width: "100%",
@@ -253,8 +269,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 8,
     backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: 12,
+    paddingVertical: 16,
   },
   primaryBtnText: {
     fontFamily: fonts.Inter_600SemiBold,
@@ -266,15 +282,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.35)",
-    paddingVertical: 14,
+    paddingVertical: 16,
   },
   secondaryBtnText: {
-    fontFamily: fonts.Inter_500Medium,
+    fontFamily: fonts.Inter_600SemiBold,
     fontSize: 15,
     color: colors.white,
+  },
+  error: {
+    marginTop: 8,
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: "#FFB4AB",
+    textAlign: "center",
   },
   addressWrap: {
     alignItems: "center",
