@@ -11,13 +11,13 @@ import {
   Text,
   View,
 } from "react-native";
-import type { Report, ReportCategory } from "../api/types";
+import type { Report, ReportStatus } from "../api/types";
 import { listIssues } from "../api/issues";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
-import type { IconName } from "../components/iconAssets";
+import { OsmNearbyMap } from "../components/OsmNearbyMap";
 import { StatusBadge } from "../components/StatusBadge";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
@@ -33,15 +33,51 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Nearby">;
 
 type LocatedReport = Report & { distance: number };
 
-const CATEGORY_ICON: Partial<Record<ReportCategory, IconName>> = {
-  WATER_SUPPLY: "water",
-  SANITATION: "garbage",
-  ROADS: "roads",
-  ELECTRICITY: "electricity",
-  DRAINAGE: "drainage",
-  STREETLIGHT: "streetlight",
-  OTHER: "other",
-};
+const FALLBACK_THUMB = require("../../assets/images/nearby-thumb.png");
+
+function reportTitle(report: Report): string {
+  const stripped = report.description.replace(/^\[[A-Z_]+\]\s*/, "").trim();
+  if (stripped.length > 0) {
+    return stripped.length > 42 ? `${stripped.slice(0, 42)}…` : stripped;
+  }
+  if (report.aiSummary) {
+    return report.aiSummary.length > 42
+      ? `${report.aiSummary.slice(0, 42)}…`
+      : report.aiSummary;
+  }
+  return report.category ? formatCategoryLabel(report.category) : "Issue";
+}
+
+function statusMeta(status: ReportStatus): { label: string; dot: string; text: string } {
+  switch (status) {
+    case "IN_PROGRESS":
+    case "ASSIGNED":
+    case "ACKNOWLEDGED":
+      return {
+        label: "In Progress",
+        dot: colors.statusProgressDot,
+        text: colors.statusProgressText,
+      };
+    case "RESOLVED":
+      return {
+        label: "Resolved",
+        dot: colors.statusResolvedDot,
+        text: colors.statusResolvedText,
+      };
+    case "SUBMITTED":
+      return {
+        label: "Pending",
+        dot: colors.brandBlueDeep,
+        text: colors.brandBlueDeep,
+      };
+    default:
+      return {
+        label: status.replace(/_/g, " "),
+        dot: colors.bodyMuted,
+        text: colors.bodyMuted,
+      };
+  }
+}
 
 export function NearbyScreen() {
   const navigation = useNavigation<Nav>();
@@ -53,6 +89,7 @@ export function NearbyScreen() {
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(
     null,
   );
+  const [mapInteracting, setMapInteracting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -65,8 +102,8 @@ export function NearbyScreen() {
         setLoading(true);
         setError(null);
         try {
-          let lat = 28.6139;
-          let lng = 77.209;
+          let lat = 28.5355;
+          let lng = 77.391;
           try {
             const { status } =
               await Location.requestForegroundPermissionsAsync();
@@ -94,7 +131,10 @@ export function NearbyScreen() {
             .sort((a, b) => a.distance - b.distance);
 
           setReports(located);
-          setSelectedId((prev) => prev ?? located[0]?.id ?? null);
+          setSelectedId((prev) => {
+            if (prev && located.some((r) => r.id === prev)) return prev;
+            return located[0]?.id ?? null;
+          });
         } catch (e) {
           if (!cancelled) {
             setError(e instanceof Error ? e.message : "Failed to load nearby");
@@ -115,23 +155,22 @@ export function NearbyScreen() {
     [reports, selectedId],
   );
 
-  const pinLayout = useMemo(() => {
-    if (reports.length === 0) return [];
-    const lats = reports.map((r) => r.latitude);
-    const lngs = reports.map((r) => r.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    const latSpan = Math.max(maxLat - minLat, 0.0008);
-    const lngSpan = Math.max(maxLng - minLng, 0.0008);
+  const mapMarkers = useMemo(
+    () =>
+      reports.map((r) => ({
+        id: r.id,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        category: r.category,
+        photoUrl: r.photoUrls[0] ?? null,
+      })),
+    [reports],
+  );
 
-    return reports.map((r) => {
-      const x = ((r.longitude - minLng) / lngSpan) * 80 + 10;
-      const y = (1 - (r.latitude - minLat) / latSpan) * 70 + 12;
-      return { id: r.id, x, y, category: r.category };
-    });
-  }, [reports]);
+  function openIssue(issueId: string) {
+    setSelectedId(issueId);
+    navigation.navigate("TrackIssue", { issueId });
+  }
 
   function onNav(tab: NavTab) {
     handleTabNavigate(navigation, tab, "nearby");
@@ -148,6 +187,8 @@ export function NearbyScreen() {
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={!mapInteracting}
+        nestedScrollEnabled
       >
         <Text style={styles.title}>Nearby Issues</Text>
         <Text style={styles.subtitle}>
@@ -157,34 +198,18 @@ export function NearbyScreen() {
         </Text>
 
         <View style={styles.mapArea}>
-          {pinLayout.map((pin) => {
-            const iconName: IconName =
-              (pin.category && CATEGORY_ICON[pin.category]) || "pin";
-            const active = pin.id === selectedId;
-            return (
-              <Pressable
-                key={pin.id}
-                style={[
-                  styles.pin,
-                  {
-                    left: `${pin.x}%`,
-                    top: `${pin.y}%`,
-                  },
-                  active && styles.pinActive,
-                ]}
-                onPress={() => setSelectedId(pin.id)}
-              >
-                <Icon
-                  name={iconName}
-                  width={16}
-                  height={16}
-                  color={active ? colors.white : colors.brandBlueDeep}
-                />
-              </Pressable>
-            );
-          })}
+          <OsmNearbyMap
+            markers={mapMarkers}
+            selectedId={selectedId}
+            userLocation={userLoc}
+            onSelect={setSelectedId}
+            onOpenIssue={openIssue}
+            onTouchMap={setMapInteracting}
+          />
           {reports.length === 0 && !loading ? (
-            <Text style={styles.mapEmpty}>No reports to map yet</Text>
+            <View style={styles.mapEmptyOverlay} pointerEvents="none">
+              <Text style={styles.mapEmpty}>No reports to map yet</Text>
+            </View>
           ) : null}
         </View>
 
@@ -205,16 +230,14 @@ export function NearbyScreen() {
                     source={
                       selected.photoUrls[0]
                         ? { uri: selected.photoUrls[0] }
-                        : require("../../assets/images/nearby-thumb.png")
+                        : FALLBACK_THUMB
                     }
                     style={styles.sheetThumb}
                     resizeMode="cover"
                   />
                   <View style={styles.sheetBody}>
                     <Text style={styles.sheetTitle} numberOfLines={1}>
-                      {selected.category
-                        ? formatCategoryLabel(selected.category)
-                        : "Issue"}
+                      {reportTitle(selected)}
                     </Text>
                     <Text style={styles.sheetMeta} numberOfLines={1}>
                       {formatDistance(selected.distance)} ·{" "}
@@ -239,27 +262,59 @@ export function NearbyScreen() {
               </View>
             ) : null}
 
-            <Text style={styles.listTitle}>Closest first</Text>
+            <Text style={styles.listHeading}>Closest first</Text>
             <View style={styles.list}>
-              {reports.map((report) => (
-                <Pressable
-                  key={report.id}
-                  style={[
-                    styles.listCard,
-                    report.id === selectedId && styles.listCardActive,
-                  ]}
-                  onPress={() => setSelectedId(report.id)}
-                >
-                  <Text style={styles.listTitleText} numberOfLines={1}>
-                    {report.category
-                      ? formatCategoryLabel(report.category)
-                      : "Issue"}
-                  </Text>
-                  <Text style={styles.listMeta}>
-                    {formatDistance(report.distance)}
-                  </Text>
-                </Pressable>
-              ))}
+              {reports.map((report) => {
+                const status = statusMeta(report.status);
+                const place =
+                  report.address?.split(",")[0]?.trim() || "Nearby location";
+                const photo = report.photoUrls[0];
+
+                return (
+                  <Pressable
+                    key={report.id}
+                    style={[
+                      styles.listRow,
+                      report.id === selectedId && styles.listRowActive,
+                    ]}
+                    onPress={() => openIssue(report.id)}
+                  >
+                    <Image
+                      source={photo ? { uri: photo } : FALLBACK_THUMB}
+                      style={styles.listThumb}
+                      resizeMode="cover"
+                    />
+
+                    <View style={styles.listBody}>
+                      <View style={styles.listTopRow}>
+                        <Text style={styles.listTitleText} numberOfLines={1}>
+                          {reportTitle(report)}
+                        </Text>
+                        <View style={styles.statusInline}>
+                          <View
+                            style={[styles.statusDot, { backgroundColor: status.dot }]}
+                          />
+                          <Text style={[styles.statusLabel, { color: status.text }]}>
+                            {status.label}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.listMetaRow}>
+                        <Icon
+                          name="pin"
+                          width={11}
+                          height={13}
+                          color={colors.textSecondary}
+                        />
+                        <Text style={styles.listMetaText} numberOfLines={1}>
+                          {formatDistance(report.distance)} · {place}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </>
         )}
@@ -294,38 +349,25 @@ const styles = StyleSheet.create({
     marginTop: -4,
   },
   mapArea: {
-    height: 220,
+    height: 240,
     borderRadius: 16,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.softBlue,
     overflow: "hidden",
+    backgroundColor: "#e8eef5",
     position: "relative",
   },
+  mapEmptyOverlay: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   mapEmpty: {
-    position: "absolute",
-    alignSelf: "center",
-    top: "45%",
     fontFamily: fonts.Inter_400Regular,
     fontSize: 13,
     color: colors.bodyMuted,
-  },
-  pin: {
-    position: "absolute",
-    width: 36,
-    height: 36,
-    marginLeft: -18,
-    marginTop: -18,
-    borderRadius: 18,
-    backgroundColor: colors.softBlue,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
-  pinActive: {
-    backgroundColor: colors.brandBlueDeep,
-    zIndex: 2,
+    backgroundColor: "rgba(249,249,255,0.9)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
   empty: {
     fontFamily: fonts.Inter_400Regular,
@@ -393,37 +435,79 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.white,
   },
-  listTitle: {
+  listHeading: {
     fontFamily: fonts.PlusJakartaSans_600SemiBold,
     fontSize: 16,
     color: colors.brandNavy,
     marginTop: 4,
   },
   list: {
+    gap: 4,
+  },
+  listRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderMuted,
+  },
+  listRowActive: {
+    backgroundColor: colors.unreadTint,
+    borderRadius: 12,
+    borderBottomWidth: 0,
+    paddingHorizontal: 8,
+  },
+  listThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.softBlue,
+  },
+  listBody: {
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
+  },
+  listTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
-  listCard: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  listCardActive: {
-    borderWidth: 1,
-    borderColor: colors.brandBlueDeep,
-  },
   listTitleText: {
-    fontFamily: fonts.Inter_500Medium,
-    fontSize: 14,
-    color: colors.brandNavy,
     flex: 1,
+    fontFamily: fonts.Inter_600SemiBold,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.brandNavy,
   },
-  listMeta: {
-    fontFamily: fonts.Inter_400Regular,
+  statusInline: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    flexShrink: 0,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusLabel: {
+    fontFamily: fonts.Inter_500Medium,
     fontSize: 12,
+    lineHeight: 16,
+  },
+  listMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  listMetaText: {
+    flex: 1,
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 13,
+    lineHeight: 18,
     color: colors.textSecondary,
   },
 });

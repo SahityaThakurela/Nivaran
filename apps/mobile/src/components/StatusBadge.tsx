@@ -36,7 +36,7 @@ function stylesForStatus(status: ReportStatus | string): BadgeStyle {
         bg: colors.softBlue,
         dot: colors.brandBlueDeep,
         text: colors.brandBlueDeep,
-        label: "Submitted",
+        label: "Pending",
       };
     default:
       return {
