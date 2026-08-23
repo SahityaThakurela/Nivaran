@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import WebView from "react-native-webview";
 import type { WebViewMessageEvent } from "react-native-webview";
-import type { ReportCategory } from "../api/types";
+import type { ChallengeDomain } from "../api/types";
 
 export type NearbyMapMarker = {
   id: string;
   latitude: number;
   longitude: number;
-  category: ReportCategory | null;
+  domain: ChallengeDomain | null;
   photoUrl?: string | null;
 };
 

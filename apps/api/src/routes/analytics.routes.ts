@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { ReportCategory, ReportStatus, Severity, UserRole } from "@prisma/client";
+import { ChallengeDomain, ReportStatus, Severity, UserRole } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/authenticate";
 import { requireRole, requireScope, type Scope } from "../middleware/rbac";
@@ -7,9 +7,8 @@ import { requireRole, requireScope, type Scope } from "../middleware/rbac";
 export const analyticsRouter = Router();
 
 const STAFF_ROLES: UserRole[] = [
-  UserRole.FIELD_WORKER,
-  UserRole.DEPARTMENT_OPERATOR,
-  UserRole.MUNICIPAL_ADMIN,
+  UserRole.UNIVERSITY_ADMIN,
+  UserRole.GOVERNMENT_ADMIN,
   UserRole.SUPER_ADMIN,
 ];
 
@@ -41,20 +40,28 @@ function toCountMap<T extends string>(enumValues: readonly T[], groups: GroupRow
 
 analyticsRouter.use(authenticate);
 
-// requireScope() keeps this consistent with every other route: a Municipal
-// Admin only ever sees their own city's numbers, a Department Operator only
-// their department's, etc.
+// requireScope() keeps this consistent with every other route: a Government
+// Admin only ever sees their own district's numbers, a University Admin only
+// their own institution's, etc.
 analyticsRouter.get("/overview", requireRole(...STAFF_ROLES), requireScope(), async (req, res) => {
   const scope: Scope = req.scope ?? {};
 
   // Run sequentially — PgBouncer transaction pooling + concurrent Prisma
   // queries on one client still flaky even with pgbouncer=true.
   const statusGroups = await prisma.report.groupBy({ by: ["status"], where: scope, _count: true });
-  const categoryGroups = await prisma.report.groupBy({ by: ["category"], where: scope, _count: true });
+  const domainGroups = await prisma.report.groupBy({ by: ["domain"], where: scope, _count: true });
   const severityGroups = await prisma.report.groupBy({ by: ["severity"], where: scope, _count: true });
+  const universityGroups = await prisma.report.groupBy({
+    by: ["universityId"],
+    where: { ...scope, universityId: { not: null } },
+    _count: true,
+  });
   const totalReports = await prisma.report.count({ where: scope });
   const openReports = await prisma.report.count({ where: { ...scope, status: { in: OPEN_STATUSES } } });
-  const pendingClassification = await prisma.report.count({ where: { ...scope, category: null } });
+  const pendingClassification = await prisma.report.count({ where: { ...scope, domain: null } });
+  const industryEngagedCount = await prisma.report.count({
+    where: { ...scope, industryPartnerId: { not: null } },
+  });
   const resolvedEvents = await prisma.reportStatusEvent.findMany({
     where: { status: ReportStatus.RESOLVED, report: scope },
     select: { createdAt: true, report: { select: { createdAt: true } } },
@@ -69,13 +76,29 @@ analyticsRouter.get("/overview", requireRole(...STAFF_ROLES), requireScope(), as
       ? Number((resolutionHours.reduce((sum, hours) => sum + hours, 0) / resolutionHours.length).toFixed(1))
       : null;
 
+  const universityIds = universityGroups
+    .map((group) => group.universityId as string | null)
+    .filter((id): id is string => id !== null);
+  const universities = universityIds.length
+    ? await prisma.university.findMany({ where: { id: { in: universityIds } }, select: { id: true, name: true } })
+    : [];
+  const universityNameById = new Map(universities.map((university) => [university.id, university.name]));
+  const byUniversity = universityGroups.map((group) => ({
+    universityId: group.universityId as string,
+    universityName: universityNameById.get(group.universityId as string) ?? "Unknown",
+    count: group._count,
+  }));
+
   res.json({
     totalReports,
     openReports,
     pendingClassification,
     averageResolutionHours,
+    universitiesEngaged: byUniversity.length,
+    industryEngagedCount,
     byStatus: toCountMap(Object.values(ReportStatus), statusGroups, "status"),
-    byCategory: toCountMap(Object.values(ReportCategory), categoryGroups, "category"),
+    byDomain: toCountMap(Object.values(ChallengeDomain), domainGroups, "domain"),
     bySeverity: toCountMap(Object.values(Severity), severityGroups, "severity"),
+    byUniversity,
   });
 });

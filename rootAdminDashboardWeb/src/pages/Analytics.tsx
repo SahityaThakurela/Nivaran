@@ -25,9 +25,9 @@ const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: '#f87171',
 };
 
-const CATEGORY_COLORS = [
+const DOMAIN_COLORS = [
   '#1A56DB', '#0E7C7B', '#E8A33D', '#C0392B',
-  '#7C3AED', '#059669', '#D97706', '#DC2626', '#7C3AED', '#475569',
+  '#7C3AED', '#059669', '#D97706', '#DC2626', '#7C3AED', '#475569', '#94A3B8',
 ];
 
 // ── Mock Citizen Feedback Data ───────────────────────────────────────────────
@@ -43,25 +43,25 @@ const TOTAL_RATINGS = STAR_DISTRIBUTION.reduce((s, d) => s + d.count, 0);
 const AVG_RATING =
   STAR_DISTRIBUTION.reduce((s, d) => s + d.count * parseInt(d.star[1]), 0) / TOTAL_RATINGS;
 
-const SATISFACTION_BY_CATEGORY = [
-  { name: 'Roads',          avg: 4.3, fill: '#34d399' },
-  { name: 'Sanitation',     avg: 3.8, fill: '#6ee7b7' },
-  { name: 'Water Supply',   avg: 4.1, fill: '#34d399' },
-  { name: 'Electricity',    avg: 3.5, fill: '#fbbf24' },
-  { name: 'Drainage',       avg: 2.9, fill: '#fb923c' },
-  { name: 'Streetlight',    avg: 4.5, fill: '#34d399' },
-  { name: 'Public Safety',  avg: 3.2, fill: '#fbbf24' },
-  { name: 'Parks & Trees',  avg: 4.7, fill: '#34d399' },
-  { name: 'Stray Animals',  avg: 2.6, fill: '#f87171' },
-  { name: 'Other',          avg: 3.9, fill: '#6ee7b7' },
+const SATISFACTION_BY_DOMAIN = [
+  { name: 'Education',              avg: 4.3, fill: '#34d399' },
+  { name: 'Healthcare',              avg: 3.8, fill: '#6ee7b7' },
+  { name: 'Agriculture',             avg: 4.1, fill: '#34d399' },
+  { name: 'Water Resources',         avg: 3.5, fill: '#fbbf24' },
+  { name: 'Environment',             avg: 2.9, fill: '#fb923c' },
+  { name: 'Energy',                  avg: 4.5, fill: '#34d399' },
+  { name: 'Urban Development',       avg: 3.2, fill: '#fbbf24' },
+  { name: 'Accessibility',           avg: 4.7, fill: '#34d399' },
+  { name: 'Public Administration',   avg: 2.6, fill: '#f87171' },
+  { name: 'Rural Livelihoods',       avg: 3.9, fill: '#6ee7b7' },
 ].sort((a, b) => b.avg - a.avg);
 
 const RECENT_FEEDBACK = [
-  { rating: 5, category: 'Parks & Trees', comment: 'Issue resolved within hours. The park looks great again — very impressed!', time: '2h ago' },
-  { rating: 2, category: 'Drainage',      comment: 'Still not fixed after 3 follow-ups. The flooding happens every time it rains.', time: '5h ago' },
-  { rating: 4, category: 'Roads',         comment: 'Pothole patched quickly. Could use a proper resurfacing eventually.',           time: '1d ago' },
-  { rating: 5, category: 'Streetlight',   comment: 'Extremely fast turnaround! Lights were back on the same day.',                  time: '1d ago' },
-  { rating: 1, category: 'Stray Animals', comment: 'Nothing happened for two weeks. The dogs are still there every morning.',       time: '2d ago' },
+  { rating: 5, category: 'Accessibility',         comment: 'The barrier-free ramp was built within weeks by the university team — very impressed!', time: '2h ago' },
+  { rating: 2, category: 'Environment',           comment: 'Still not resolved after 3 follow-ups. The pollution issue persists near the river.',    time: '5h ago' },
+  { rating: 4, category: 'Agriculture',           comment: 'The irrigation pilot from the university team is working well so far.',                  time: '1d ago' },
+  { rating: 5, category: 'Energy',                comment: 'Extremely fast turnaround! The solar micro-grid pilot went live the same week.',         time: '1d ago' },
+  { rating: 1, category: 'Public Administration', comment: 'Nothing happened for two weeks after routing to the university.',                        time: '2d ago' },
 ];
 
 function StarDisplay({ rating }: { rating: number }) {
@@ -128,8 +128,8 @@ export default function Analytics() {
     fill: STATUS_COLORS[k] ?? '#94a3b8',
   }));
 
-  const categoryChartData = Object.entries(data.byCategory)
-    .map(([k, v], i) => ({ name: k.replace(/_/g, ' '), count: v, fill: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }))
+  const domainChartData = Object.entries(data.byDomain)
+    .map(([k, v], i) => ({ name: k.replace(/_/g, ' '), count: v, fill: DOMAIN_COLORS[i % DOMAIN_COLORS.length] }))
     .sort((a, b) => b.count - a.count);
 
   const severityChartData = Object.entries(data.bySeverity).map(([k, v]) => ({
@@ -145,15 +145,15 @@ export default function Analytics() {
     <div className="p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-        <p className="text-sm text-gray-500 mt-0.5">City-wide report intelligence and resolution metrics.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Statewide challenge intelligence, university engagement, and industry collaboration.</p>
       </div>
 
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Reports',       value: data.totalReports.toString(),            color: 'text-gray-900' },
-          { label: 'Open Reports',        value: data.openReports.toString(),              color: 'text-amber-700' },
-          { label: 'Resolved',            value: (data.byStatus.RESOLVED ?? 0).toString(), color: 'text-green-700' },
+          { label: 'Total Challenges',     value: data.totalReports.toString(),            color: 'text-gray-900' },
+          { label: 'Universities Engaged', value: data.universitiesEngaged.toString(),      color: 'text-amber-700' },
+          { label: 'Industry Collaborations', value: data.industryEngagedCount.toString(),  color: 'text-green-700' },
           { label: 'Avg Resolution (days)', value: avgDays,                                color: 'text-blue-700' },
         ].map((k) => (
           <div key={k.label} className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
@@ -166,7 +166,7 @@ export default function Analytics() {
       {/* Status + Severity charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-4">Reports by Status</h2>
+          <h2 className="text-sm font-semibold text-gray-900 mb-4">Challenges by Status</h2>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={statusChartData} margin={{ left: -20, right: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -207,17 +207,17 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Category bar chart */}
+      {/* Domain bar chart */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-4">Reports by Category</h2>
+        <h2 className="text-sm font-semibold text-gray-900 mb-4">Challenges by Domain</h2>
         <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={categoryChartData} layout="vertical" margin={{ left: 60, right: 20 }}>
+          <BarChart data={domainChartData} layout="vertical" margin={{ left: 60, right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
             <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
             <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} axisLine={false} width={90} />
             <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }} />
             <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-              {categoryChartData.map((entry, i) => (
+              {domainChartData.map((entry, i) => (
                 <Cell key={i} fill={entry.fill} />
               ))}
             </Bar>
@@ -273,15 +273,15 @@ export default function Analytics() {
             </div>
           </div>
 
-          {/* Satisfaction by Category */}
+          {/* Satisfaction by Domain */}
           <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-card p-5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={14} className="text-blue-600" />
-              <h3 className="text-sm font-semibold text-gray-900">Avg Rating by Category</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Avg Rating by Domain</h3>
             </div>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
-                data={SATISFACTION_BY_CATEGORY.map((d) => ({ ...d, fill: categoryColor(d.avg) }))}
+                data={SATISFACTION_BY_DOMAIN.map((d) => ({ ...d, fill: categoryColor(d.avg) }))}
                 layout="vertical"
                 margin={{ left: 70, right: 30 }}
               >
@@ -293,7 +293,7 @@ export default function Analytics() {
                   formatter={(v: number) => [`${v.toFixed(1)} / 5`, 'Avg Rating']}
                 />
                 <Bar dataKey="avg" radius={[0, 4, 4, 0]}>
-                  {SATISFACTION_BY_CATEGORY.map((entry, i) => (
+                  {SATISFACTION_BY_DOMAIN.map((entry, i) => (
                     <Cell key={i} fill={categoryColor(entry.avg)} />
                   ))}
                 </Bar>

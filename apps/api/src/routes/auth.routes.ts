@@ -10,12 +10,12 @@ const SALT_ROUNDS = 10;
 
 // Never send passwordHash back to the client.
 function toSafeUser(user: User) {
-  const { id, name, email, phone, role, cityId, departmentId } = user;
-  return { id, name, email, phone, role, cityId, departmentId };
+  const { id, name, email, phone, role, cityId, universityId } = user;
+  return { id, name, email, phone, role, cityId, universityId };
 }
 
 authRouter.post("/register", async (req, res) => {
-  const { name, email, phone, password, role, cityId, departmentId } = req.body ?? {};
+  const { name, email, phone, password, role, cityId, universityId } = req.body ?? {};
 
   if (!name || !password || (!email && !phone)) {
     return res.status(400).json({
@@ -34,7 +34,7 @@ authRouter.post("/register", async (req, res) => {
 
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
-  // NOTE: accepting role/cityId/departmentId here is a temporary hackathon
+  // NOTE: accepting role/cityId/universityId here is a temporary hackathon
   // shortcut so every role can be tested via curl before RBAC exists. Once
   // requireRole()/requireScope() land, move non-CITIZEN account creation
   // behind a SUPER_ADMIN-only route instead of leaving it open here.
@@ -46,7 +46,7 @@ authRouter.post("/register", async (req, res) => {
       passwordHash,
       role: role ?? "CITIZEN",
       cityId: cityId ?? null,
-      departmentId: departmentId ?? null,
+      universityId: universityId ?? null,
     },
   });
 
@@ -54,7 +54,7 @@ authRouter.post("/register", async (req, res) => {
     sub: user.id,
     role: user.role,
     cityId: user.cityId,
-    departmentId: user.departmentId,
+    universityId: user.universityId,
   });
 
   res.status(201).json({ token, user: toSafeUser(user) });
@@ -84,7 +84,7 @@ authRouter.post("/login", async (req, res) => {
     sub: user.id,
     role: user.role,
     cityId: user.cityId,
-    departmentId: user.departmentId,
+    universityId: user.universityId,
   });
 
   res.json({ token, user: toSafeUser(user) });

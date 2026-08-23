@@ -52,7 +52,7 @@ function buildTimeline(
     {
       key: "triaged",
       label: t("track.triaged"),
-      include: !!report.category,
+      include: !!report.domain,
       at: report.updatedAt,
     },
     {
@@ -94,7 +94,7 @@ export function TrackIssueScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const { issueId } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
@@ -182,9 +182,7 @@ export function TrackIssueScreen() {
           </View>
 
           <Text style={styles.title}>
-            {report.category
-              ? categoryLabel(report.category)
-              : t("common.issue")}
+            {report.domain ? domainLabel(report.domain) : t("common.issue")}
           </Text>
           <Text style={styles.address}>
             {report.address ?? t("common.locationPending")}
@@ -207,16 +205,16 @@ export function TrackIssueScreen() {
             </View>
           ) : null}
 
-          {report.aiSummary || report.category ? (
+          {report.aiSummary || report.domain ? (
             <View style={styles.aiCard}>
               <View style={styles.aiHeader}>
                 <Icon name="sparkle" width={18} height={18} />
                 <Text style={styles.aiTitle}>{t("track.aiInsight")}</Text>
               </View>
-              {report.category ? (
+              {report.domain ? (
                 <Text style={styles.aiMeta}>
                   {t("track.categoryMeta", {
-                    category: categoryLabel(report.category),
+                    category: domainLabel(report.domain),
                   })}
                   {report.severity
                     ? t("track.severityMeta", { severity: report.severity })

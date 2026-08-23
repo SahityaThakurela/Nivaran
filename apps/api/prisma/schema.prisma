@@ -14,22 +14,25 @@ datasource db {
 
 enum UserRole {
   CITIZEN
-  FIELD_WORKER
-  DEPARTMENT_OPERATOR
-  MUNICIPAL_ADMIN
+  UNIVERSITY_ADMIN
+  GOVERNMENT_ADMIN
   SUPER_ADMIN
 }
 
-enum ReportCategory {
-  ROADS
-  SANITATION
-  WATER_SUPPLY
-  ELECTRICITY
-  DRAINAGE
-  STREETLIGHT
-  PUBLIC_SAFETY
-  PARKS_AND_TREES
-  STRAY_ANIMALS
+// Thematic domains from the Societal Innovation Collaboration Portal PS
+// (education, healthcare, agriculture, water resources, environment, energy,
+// urban development, accessibility, public administration, rural livelihoods).
+enum ChallengeDomain {
+  EDUCATION
+  HEALTHCARE
+  AGRICULTURE
+  WATER_RESOURCES
+  ENVIRONMENT
+  ENERGY
+  URBAN_DEVELOPMENT
+  ACCESSIBILITY
+  PUBLIC_ADMINISTRATION
+  RURAL_LIVELIHOODS
   OTHER
 }
 
@@ -54,31 +57,55 @@ enum ReportStatus {
   DUPLICATE
 }
 
+enum PartnerType {
+  STARTUP
+  MSME
+  CORPORATE
+  CSR
+  RESEARCH_LAB
+}
+
 model City {
   id    String @id @default(cuid())
   name  String
   state String
 
-  users       User[]
-  departments Department[]
-  reports     Report[]
+  users        User[]
+  universities University[]
+  reports      Report[]
 
   @@unique([name, state])
 }
 
-// One department per category per city — this is how a classified report
-// auto-routes to the right team (e.g. ROADS -> "Roads Dept, Pune").
-model Department {
-  id       String         @id @default(cuid())
-  name     String
-  category ReportCategory
-  cityId   String
-  city     City           @relation(fields: [cityId], references: [id])
+// A Higher Education Institution (HEI) that challenges get routed to. A
+// university can cover several domains (specializations) and a domain can be
+// covered by several universities across the state — routing picks the best
+// match by district first, then falls back state-wide.
+model University {
+  id              String            @id @default(cuid())
+  name            String
+  type            String? // e.g. CENTRAL, STATE, PRIVATE, DEEMED — free text for MVP
+  specializations ChallengeDomain[]
+  cityId          String
+  city            City              @relation(fields: [cityId], references: [id])
 
   users   User[]
   reports Report[]
 
-  @@unique([cityId, category])
+  @@index([cityId])
+}
+
+// Lightweight directory of industries, startups, MSMEs, CSR orgs, and
+// research labs a university admin can loop in on a challenge. No workflow
+// engine for this pass — just a picker + a relation on Report.
+model IndustryPartner {
+  id           String            @id @default(cuid())
+  name         String
+  type         PartnerType
+  domains      ChallengeDomain[]
+  contactEmail String?
+
+  reports Report[]
 }
 
 model User {
@@ -92,11 +119,10 @@ model User {
   // Scope for RBAC: null for SUPER_ADMIN (sees everything), set for everyone else.
   cityId       String?
   city         City?       @relation(fields: [cityId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
+  universityId String?
+  university   University? @relation(fields: [universityId], references: [id])
 
   reportsSubmitted Report[]            @relation("ReportedBy")
-  reportsAssigned  Report[]            @relation("AssignedTo")
   statusEvents     ReportStatusEvent[]
 
   createdAt DateTime @default(now())
@@ -122,7 +148,7 @@ model Report {
   // AI classification (single hosted LLM call, strict JSON output). All
   // nullable because a freshly SUBMITTED report is created before the
   // classification job runs — these get filled in once it completes.
-  category     ReportCategory?
+  domain       ChallengeDomain?
   severity     Severity?
   aiSummary    String?
   aiConfidence Float?
@@ -139,8 +165,17 @@ model Report {
   duplicateOf   Report?  @relation("DuplicateOf", fields: [duplicateOfId], references: [id])
   duplicates    Report[] @relation("DuplicateOf")
 
-  // Field worker's proof of completion, kept separate from the citizen's
-  // original submission photos.
+  // Lightweight team-formation placeholder set by the university admin —
+  // no full team/roster CRUD in this pass.
+  facultyMentor String?
+  teamNote      String?
+
+  // Optional industry/startup/CSR partner looped in by the university admin.
+  industryPartnerId String?
+  industryPartner   IndustryPartner? @relation(fields: [industryPartnerId], references: [id])
+
+  // Proof of solution delivery / resolution, kept separate from the
+  // citizen's original submission photos.
   resolutionEvidenceUrls String[]
 
   // Citizen's post-resolution confirm/reopen response
@@ -149,13 +184,11 @@ model Report {
 
   cityId       String
   city         City        @relation(fields: [cityId], references: [id])
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
+  universityId String?
+  university   University? @relation(fields: [universityId], references: [id])
 
   reportedById String
   reportedBy   User    @relation("ReportedBy", fields: [reportedById], references: [id])
-  assignedToId String?
-  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id])
 
   statusEvents ReportStatusEvent[]
 
@@ -163,7 +196,7 @@ model Report {
   updatedAt DateTime @updatedAt
 
   @@index([cityId, status])
-  @@index([departmentId, status])
+  @@index([universityId, status])
 }
 
 // Issue evidence photos stored in Postgres and served at /api/issues/photos/:id.

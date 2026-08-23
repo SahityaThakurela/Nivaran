@@ -8,7 +8,6 @@ const Overview = lazy(() => import('./pages/Overview'));
 const IssueQueue = lazy(() => import('./pages/IssueQueue'));
 const IssueDetail = lazy(() => import('./pages/IssueDetail'));
 const MapView = lazy(() => import('./pages/MapView'));
-const TaskView = lazy(() => import('./pages/TaskView'));
 const Analytics = lazy(() => import('./pages/Analytics'));
 const AdminManagement = lazy(() => import('./pages/AdminManagement'));
 const Notifications = lazy(() => import('./pages/Notifications'));
@@ -57,10 +56,10 @@ function AppRoutes() {
           <Route path="/issues" element={<IssueQueue />} />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/map" element={<MapView />} />
-          <Route path="/tasks" element={<TaskView />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/teams" element={<AdminManagement />} />
-          <Route path="/departments" element={<AdminManagement />} />
+          <Route path="/universities" element={<AdminManagement />} />
+          <Route path="/industry-partners" element={<AdminManagement />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/audit" element={<AuditLog />} />

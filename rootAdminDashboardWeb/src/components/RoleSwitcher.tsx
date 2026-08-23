@@ -2,10 +2,9 @@ import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../api/types';
 
 const ROLES: { role: UserRole; label: string; color: string }[] = [
-  { role: 'SUPER_ADMIN',        label: 'Super Admin',       color: 'bg-purple-600' },
-  { role: 'MUNICIPAL_ADMIN',    label: 'Municipal Admin',   color: 'bg-blue-600' },
-  { role: 'DEPARTMENT_OPERATOR',label: 'Dept. Operator',    color: 'bg-teal-600' },
-  { role: 'FIELD_WORKER',       label: 'Field Worker',      color: 'bg-amber-500' },
+  { role: 'SUPER_ADMIN',      label: 'Super Admin (Dept. of Higher Ed)', color: 'bg-purple-600' },
+  { role: 'GOVERNMENT_ADMIN', label: 'Government Admin',                color: 'bg-blue-600' },
+  { role: 'UNIVERSITY_ADMIN', label: 'University Admin',                color: 'bg-teal-600' },
 ];
 
 export function RoleSwitcher() {

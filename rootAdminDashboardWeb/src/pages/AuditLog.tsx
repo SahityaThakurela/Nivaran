@@ -8,15 +8,15 @@ import {
 // ── Types & Mock Data ─────────────────────────────────────────────────────────
 
 type ActionType =
-  | 'ISSUE_ASSIGNED'
+  | 'CHALLENGE_ROUTED'
   | 'STATUS_CHANGED'
-  | 'WORKER_ADDED'
-  | 'DEPARTMENT_UPDATED'
+  | 'TEAM_FORMED'
+  | 'UNIVERSITY_UPDATED'
   | 'AI_OVERRIDE'
   | 'DUPLICATE_MERGED'
-  | 'ISSUE_RESOLVED';
+  | 'CHALLENGE_RESOLVED';
 
-type ActorRole = 'SUPER_ADMIN' | 'MUNICIPAL_ADMIN' | 'DEPARTMENT_OPERATOR';
+type ActorRole = 'SUPER_ADMIN' | 'GOVERNMENT_ADMIN' | 'UNIVERSITY_ADMIN';
 
 interface AuditEntry {
   id: string;
@@ -34,62 +34,62 @@ function hoursAgo(h: number): string {
 }
 
 const MOCK_LOG: AuditEntry[] = [
-  { id: 'a01', action: 'STATUS_CHANGED',    actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',    target: '#F3A92C',  targetId: 'f3a92c', detail: 'Moved from SUBMITTED → IN_PROGRESS',              timestamp: hoursAgo(0.3) },
-  { id: 'a02', action: 'ISSUE_ASSIGNED',    actor: 'Rahul Verma',     actorRole: 'DEPARTMENT_OPERATOR', target: '#B77D1E',  targetId: 'b77d1e', detail: 'Assigned to Field Worker Manish Tomar',           timestamp: hoursAgo(1.1) },
-  { id: 'a03', action: 'AI_OVERRIDE',       actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#C4F19A',  targetId: 'c4f19a', detail: 'Overrode AI category from ROADS → DRAINAGE',      timestamp: hoursAgo(2) },
-  { id: 'a04', action: 'DUPLICATE_MERGED',  actor: 'Rahul Verma',     actorRole: 'DEPARTMENT_OPERATOR', target: '#9E3D7B',  targetId: '9e3d7b', detail: 'Merged into parent report #A12F8D',               timestamp: hoursAgo(3.5) },
-  { id: 'a05', action: 'WORKER_ADDED',      actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: undefined,  targetId: undefined, detail: 'Added Field Worker: Suresh Kumar (Sanitation)',   timestamp: hoursAgo(4) },
-  { id: 'a06', action: 'ISSUE_RESOLVED',    actor: 'Manish Tomar',    actorRole: 'DEPARTMENT_OPERATOR', target: '#D83F12',  targetId: 'd83f12', detail: 'Marked resolved with photo evidence uploaded',     timestamp: hoursAgo(5) },
-  { id: 'a07', action: 'STATUS_CHANGED',    actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#7A2C9F',  targetId: '7a2c9f', detail: 'Moved from IN_PROGRESS → REJECTED (duplicate)',    timestamp: hoursAgo(6) },
-  { id: 'a08', action: 'DEPARTMENT_UPDATED',actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: undefined,  targetId: undefined, detail: 'Updated Electricity Dept — added 3 new operators', timestamp: hoursAgo(8) },
-  { id: 'a09', action: 'ISSUE_ASSIGNED',    actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#E12AB5',  targetId: 'e12ab5', detail: 'Re-assigned from Roads to Public Safety dept',     timestamp: hoursAgo(10) },
-  { id: 'a10', action: 'AI_OVERRIDE',       actor: 'Rahul Verma',     actorRole: 'DEPARTMENT_OPERATOR', target: '#F9C44E',  targetId: 'f9c44e', detail: 'Changed AI severity from MEDIUM → HIGH',          timestamp: hoursAgo(12) },
-  { id: 'a11', action: 'STATUS_CHANGED',    actor: 'Suresh Kumar',    actorRole: 'DEPARTMENT_OPERATOR', target: '#3318DC',  targetId: '3318dc', detail: 'Moved from ASSIGNED → IN_PROGRESS',                timestamp: hoursAgo(14) },
-  { id: 'a12', action: 'ISSUE_RESOLVED',    actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: '#22F7AB',  targetId: '22f7ab', detail: 'Force-resolved — field verification confirmed',    timestamp: hoursAgo(16) },
-  { id: 'a13', action: 'DUPLICATE_MERGED',  actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#1A99DE',  targetId: '1a99de', detail: 'Merged 2 duplicate reports into this issue',       timestamp: hoursAgo(20) },
-  { id: 'a14', action: 'WORKER_ADDED',      actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: undefined,  targetId: undefined, detail: 'Added new Municipal Admin: Deepa Nair',           timestamp: hoursAgo(24) },
-  { id: 'a15', action: 'DEPARTMENT_UPDATED',actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: undefined,  targetId: undefined, detail: 'Created new department: Stray Animal Control',    timestamp: hoursAgo(28) },
-  { id: 'a16', action: 'ISSUE_ASSIGNED',    actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: '#CC113F',  targetId: 'cc113f', detail: 'Assigned CRITICAL road issue to Roads dept',       timestamp: hoursAgo(30) },
-  { id: 'a17', action: 'STATUS_CHANGED',    actor: 'Rahul Verma',     actorRole: 'DEPARTMENT_OPERATOR', target: '#884CCB',  targetId: '884ccb', detail: 'Acknowledged report after field inspection',        timestamp: hoursAgo(36) },
-  { id: 'a18', action: 'AI_OVERRIDE',       actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: '#FF8832',  targetId: 'ff8832', detail: 'Manually set category to STREETLIGHT',             timestamp: hoursAgo(40) },
-  { id: 'a19', action: 'ISSUE_RESOLVED',    actor: 'Suresh Kumar',    actorRole: 'DEPARTMENT_OPERATOR', target: '#13EEA1',  targetId: '13eea1', detail: 'Resolved after 2nd field visit with evidence',      timestamp: hoursAgo(44) },
-  { id: 'a20', action: 'WORKER_ADDED',      actor: 'Priya Sharma',    actorRole: 'MUNICIPAL_ADMIN',     target: undefined,  targetId: undefined, detail: 'Added Field Worker: Kiran Patel (Roads)',         timestamp: hoursAgo(48) },
+  { id: 'a01', action: 'STATUS_CHANGED',      actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: '#F3A92C',  targetId: 'f3a92c', detail: 'Moved from SUBMITTED → IN_PROGRESS',                    timestamp: hoursAgo(0.3) },
+  { id: 'a02', action: 'CHALLENGE_ROUTED',    actor: 'Rahul Verma',     actorRole: 'UNIVERSITY_ADMIN',    target: '#B77D1E',  targetId: 'b77d1e', detail: 'Routed to NIT Jamshedpur based on domain match',        timestamp: hoursAgo(1.1) },
+  { id: 'a03', action: 'AI_OVERRIDE',         actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#C4F19A',  targetId: 'c4f19a', detail: 'Overrode AI domain from EDUCATION → HEALTHCARE',        timestamp: hoursAgo(2) },
+  { id: 'a04', action: 'DUPLICATE_MERGED',    actor: 'Rahul Verma',     actorRole: 'UNIVERSITY_ADMIN',    target: '#9E3D7B',  targetId: '9e3d7b', detail: 'Merged into parent challenge #A12F8D',                  timestamp: hoursAgo(3.5) },
+  { id: 'a05', action: 'TEAM_FORMED',         actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: undefined,  targetId: undefined, detail: 'Assigned faculty mentor Dr. Suresh Kumar (Agriculture)', timestamp: hoursAgo(4) },
+  { id: 'a06', action: 'CHALLENGE_RESOLVED',  actor: 'Manish Tomar',    actorRole: 'UNIVERSITY_ADMIN',    target: '#D83F12',  targetId: 'd83f12', detail: 'Marked resolved with solution documentation uploaded',  timestamp: hoursAgo(5) },
+  { id: 'a07', action: 'STATUS_CHANGED',      actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#7A2C9F',  targetId: '7a2c9f', detail: 'Moved from IN_PROGRESS → REJECTED (duplicate)',         timestamp: hoursAgo(6) },
+  { id: 'a08', action: 'UNIVERSITY_UPDATED',  actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: undefined,  targetId: undefined, detail: 'Updated BIT Mesra — added Energy specialization',       timestamp: hoursAgo(8) },
+  { id: 'a09', action: 'CHALLENGE_ROUTED',    actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#E12AB5',  targetId: 'e12ab5', detail: 'Re-routed from RIMS Ranchi to Central University',       timestamp: hoursAgo(10) },
+  { id: 'a10', action: 'AI_OVERRIDE',         actor: 'Rahul Verma',     actorRole: 'UNIVERSITY_ADMIN',    target: '#F9C44E',  targetId: 'f9c44e', detail: 'Changed AI severity from MEDIUM → HIGH',                 timestamp: hoursAgo(12) },
+  { id: 'a11', action: 'STATUS_CHANGED',      actor: 'Suresh Kumar',    actorRole: 'UNIVERSITY_ADMIN',    target: '#3318DC',  targetId: '3318dc', detail: 'Moved from ASSIGNED → IN_PROGRESS',                      timestamp: hoursAgo(14) },
+  { id: 'a12', action: 'CHALLENGE_RESOLVED',  actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: '#22F7AB',  targetId: '22f7ab', detail: 'Force-resolved — solution verified in field',            timestamp: hoursAgo(16) },
+  { id: 'a13', action: 'DUPLICATE_MERGED',    actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: '#1A99DE',  targetId: '1a99de', detail: 'Merged 2 duplicate challenges into this one',            timestamp: hoursAgo(20) },
+  { id: 'a14', action: 'TEAM_FORMED',         actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: undefined,  targetId: undefined, detail: 'Added new Government Admin: Deepa Nair',                timestamp: hoursAgo(24) },
+  { id: 'a15', action: 'UNIVERSITY_UPDATED',  actor: 'Anjali Mehta',    actorRole: 'SUPER_ADMIN',         target: undefined,  targetId: undefined, detail: 'Onboarded new university: ICAR Research Complex',        timestamp: hoursAgo(28) },
+  { id: 'a16', action: 'CHALLENGE_ROUTED',    actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: '#CC113F',  targetId: 'cc113f', detail: 'Routed CRITICAL healthcare challenge to RIMS Ranchi',    timestamp: hoursAgo(30) },
+  { id: 'a17', action: 'STATUS_CHANGED',      actor: 'Rahul Verma',     actorRole: 'UNIVERSITY_ADMIN',    target: '#884CCB',  targetId: '884ccb', detail: 'Acknowledged challenge after initial faculty review',   timestamp: hoursAgo(36) },
+  { id: 'a18', action: 'AI_OVERRIDE',         actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: '#FF8832',  targetId: 'ff8832', detail: 'Manually set domain to URBAN_DEVELOPMENT',               timestamp: hoursAgo(40) },
+  { id: 'a19', action: 'CHALLENGE_RESOLVED',  actor: 'Suresh Kumar',    actorRole: 'UNIVERSITY_ADMIN',    target: '#13EEA1',  targetId: '13eea1', detail: 'Resolved after 2nd pilot deployment with evidence',      timestamp: hoursAgo(44) },
+  { id: 'a20', action: 'TEAM_FORMED',         actor: 'Priya Sharma',    actorRole: 'GOVERNMENT_ADMIN',    target: undefined,  targetId: undefined, detail: 'Formed multidisciplinary team with Kiran Patel as mentor', timestamp: hoursAgo(48) },
 ];
 
 const ACTION_LABELS: Record<ActionType, string> = {
-  ISSUE_ASSIGNED:    'Issue Assigned',
-  STATUS_CHANGED:    'Status Changed',
-  WORKER_ADDED:      'Worker Added',
-  DEPARTMENT_UPDATED:'Dept Updated',
-  AI_OVERRIDE:       'AI Override',
-  DUPLICATE_MERGED:  'Duplicate Merged',
-  ISSUE_RESOLVED:    'Issue Resolved',
+  CHALLENGE_ROUTED:   'Challenge Routed',
+  STATUS_CHANGED:     'Status Changed',
+  TEAM_FORMED:        'Team Formed',
+  UNIVERSITY_UPDATED: 'University Updated',
+  AI_OVERRIDE:        'AI Override',
+  DUPLICATE_MERGED:   'Duplicate Merged',
+  CHALLENGE_RESOLVED: 'Challenge Resolved',
 };
 
 const ACTION_ICON: Record<ActionType, React.ReactNode> = {
-  ISSUE_ASSIGNED:    <ArrowLeftRight size={14} />,
-  STATUS_CHANGED:    <ArrowLeftRight size={14} />,
-  WORKER_ADDED:      <UserPlus size={14} />,
-  DEPARTMENT_UPDATED:<Building2 size={14} />,
-  AI_OVERRIDE:       <Bot size={14} />,
-  DUPLICATE_MERGED:  <Copy size={14} />,
-  ISSUE_RESOLVED:    <CheckCircle2 size={14} />,
+  CHALLENGE_ROUTED:   <ArrowLeftRight size={14} />,
+  STATUS_CHANGED:     <ArrowLeftRight size={14} />,
+  TEAM_FORMED:        <UserPlus size={14} />,
+  UNIVERSITY_UPDATED: <Building2 size={14} />,
+  AI_OVERRIDE:        <Bot size={14} />,
+  DUPLICATE_MERGED:   <Copy size={14} />,
+  CHALLENGE_RESOLVED: <CheckCircle2 size={14} />,
 };
 
 const ACTION_COLOR: Record<ActionType, string> = {
-  ISSUE_ASSIGNED:    'bg-blue-50 text-blue-700',
-  STATUS_CHANGED:    'bg-slate-100 text-slate-600',
-  WORKER_ADDED:      'bg-purple-50 text-purple-700',
-  DEPARTMENT_UPDATED:'bg-indigo-50 text-indigo-700',
-  AI_OVERRIDE:       'bg-amber-50 text-amber-700',
-  DUPLICATE_MERGED:  'bg-orange-50 text-orange-700',
-  ISSUE_RESOLVED:    'bg-green-50 text-green-700',
+  CHALLENGE_ROUTED:   'bg-blue-50 text-blue-700',
+  STATUS_CHANGED:     'bg-slate-100 text-slate-600',
+  TEAM_FORMED:        'bg-purple-50 text-purple-700',
+  UNIVERSITY_UPDATED: 'bg-indigo-50 text-indigo-700',
+  AI_OVERRIDE:        'bg-amber-50 text-amber-700',
+  DUPLICATE_MERGED:   'bg-orange-50 text-orange-700',
+  CHALLENGE_RESOLVED: 'bg-green-50 text-green-700',
 };
 
 const ROLE_COLOR: Record<ActorRole, string> = {
-  SUPER_ADMIN:         'bg-red-100 text-red-700',
-  MUNICIPAL_ADMIN:     'bg-blue-100 text-blue-700',
-  DEPARTMENT_OPERATOR: 'bg-slate-100 text-slate-600',
+  SUPER_ADMIN:       'bg-red-100 text-red-700',
+  GOVERNMENT_ADMIN:  'bg-blue-100 text-blue-700',
+  UNIVERSITY_ADMIN:  'bg-slate-100 text-slate-600',
 };
 
 const ACTION_TYPES = Object.keys(ACTION_LABELS) as ActionType[];
@@ -164,7 +164,7 @@ export default function AuditLog() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search actor, action details, issue ID…"
+            placeholder="Search actor, action details, challenge ID…"
             className="w-full pl-8 pr-3 py-2 text-sm rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 placeholder:text-gray-400"
           />
         </div>

@@ -15,7 +15,7 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://nivaran-m0b2.onrender.com",
-        "EXPO_PUBLIC_DEFAULT_CITY_ID": "cmtcitynoida000000000001",
+        "EXPO_PUBLIC_DEFAULT_CITY_ID": "cmtcityranchi00000000001",
         "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     },
@@ -23,7 +23,7 @@
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://nivaran-m0b2.onrender.com",
-        "EXPO_PUBLIC_DEFAULT_CITY_ID": "cmtcitynoida000000000001",
+        "EXPO_PUBLIC_DEFAULT_CITY_ID": "cmtcityranchi00000000001",
         "EXPO_PUBLIC_USE_RN_FETCH": "1"
       }
     }

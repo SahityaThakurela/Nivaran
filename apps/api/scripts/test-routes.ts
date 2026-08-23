@@ -147,15 +147,12 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
   // --- Auth ---
   console.log("\n== Auth ==");
   const citizenEmail = `citizen_${suffix}@test.local`;
-  const workerEmail = `worker_${suffix}@test.local`;
   const adminEmail = `admin_${suffix}@test.local`;
   const password = "TestPass123!";
 
   let citizenToken = "";
-  let workerToken = "";
   let adminToken = "";
   let citizenId = "";
-  let workerId = "";
 
   try {
     const reg = await request("POST", "/api/auth/register", {
@@ -188,24 +185,6 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
     pass("POST /api/auth/login (bad password)", bad.status, "rejected as expected");
   } catch (error) {
     fail("POST /api/auth/login (bad password)", 0, error instanceof Error ? error.message : String(error));
-  }
-
-  try {
-    const worker = await request("POST", "/api/auth/register", {
-      body: {
-        name: "Worker",
-        email: workerEmail,
-        password,
-        role: "FIELD_WORKER",
-        cityId,
-      },
-      expect: 201,
-    });
-    workerToken = String((worker.json as { token: string }).token);
-    workerId = String((worker.json as { user: { id: string } }).user.id);
-    pass("POST /api/auth/register (field worker)", worker.status, `user=${workerId}`);
-  } catch (error) {
-    fail("POST /api/auth/register (field worker)", 0, error instanceof Error ? error.message : String(error));
   }
 
   try {
@@ -310,7 +289,6 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
         token: adminToken,
         body: {
           status: "ASSIGNED",
-          assignedToId: workerId,
           note: "Assigned for smoke test",
         },
         expect: 200,
@@ -322,42 +300,26 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
     }
   }
 
-  // --- Tasks ---
-  console.log("\n== Tasks ==");
-  if (reportId && workerToken) {
-    try {
-      const accept = await request("POST", `/api/tasks/${reportId}/accept`, {
-        token: workerToken,
-        expect: 200,
-      });
-      pass(
-        "POST /api/tasks/:id/accept",
-        accept.status,
-        `status=${(accept.json as { report: { status: string } }).report.status}`,
-      );
-    } catch (error) {
-      fail("POST /api/tasks/:id/accept", 0, error instanceof Error ? error.message : String(error));
-    }
+  // --- Universities & Industry Partners ---
+  console.log("\n== Universities & Industry Partners ==");
+  try {
+    const universities = await request("GET", "/api/universities", { token: citizenToken, expect: 200 });
+    const n = Array.isArray((universities.json as { universities?: unknown[] }).universities)
+      ? (universities.json as { universities: unknown[] }).universities.length
+      : 0;
+    pass("GET /api/universities", universities.status, `${n} university(ies)`);
+  } catch (error) {
+    fail("GET /api/universities", 0, error instanceof Error ? error.message : String(error));
+  }
 
-    try {
-      const complete = await request("POST", `/api/tasks/${reportId}/complete`, {
-        token: workerToken,
-        body: {
-          resolutionEvidenceUrls: ["https://example.com/fixed.jpg"],
-          note: "Filled and sealed",
-        },
-        expect: 200,
-      });
-      pass(
-        "POST /api/tasks/:id/complete",
-        complete.status,
-        `status=${(complete.json as { report: { status: string } }).report.status}`,
-      );
-    } catch (error) {
-      fail("POST /api/tasks/:id/complete", 0, error instanceof Error ? error.message : String(error));
-    }
-  } else {
-    fail("POST /api/tasks/*", 0, "skipped — missing reportId or workerToken");
+  try {
+    const partners = await request("GET", "/api/industry-partners", { token: citizenToken, expect: 200 });
+    const n = Array.isArray((partners.json as { partners?: unknown[] }).partners)
+      ? (partners.json as { partners: unknown[] }).partners.length
+      : 0;
+    pass("GET /api/industry-partners", partners.status, `${n} partner(s)`);
+  } catch (error) {
+    fail("GET /api/industry-partners", 0, error instanceof Error ? error.message : String(error));
   }
 
   // --- AI ---
@@ -387,11 +349,11 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
         body: { reportId: aiReportId },
         expect: 200,
       });
-      const report = (analyzed.json as { report: { category?: string; severity?: string } }).report;
+      const report = (analyzed.json as { report: { domain?: string; severity?: string } }).report;
       pass(
         "POST /api/ai/analyze-report",
         analyzed.status,
-        `category=${report.category ?? "null"} severity=${report.severity ?? "null"}`,
+        `domain=${report.domain ?? "null"} severity=${report.severity ?? "null"}`,
       );
     } catch (error) {
       fail("POST /api/ai/analyze-report", 0, error instanceof Error ? error.message : String(error));

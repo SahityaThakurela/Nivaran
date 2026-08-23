@@ -39,15 +39,15 @@ function stripCategoryPrefix(description: string): string {
   return description.replace(/^\[[A-Z_]+\]\s*/, "").trim();
 }
 
-/** Prefer nav param (user pick), then API category, then `[CATEGORY]` prefix. */
-function resolveCategory(
+/** Prefer nav param (user pick), then API domain, then `[DOMAIN]` prefix. */
+function resolveDomain(
   report: Report | null,
-  paramCategory?: string,
+  paramDomain?: string,
 ): string | null {
-  const fromParam = paramCategory?.trim();
+  const fromParam = paramDomain?.trim();
   if (fromParam) return fromParam;
 
-  if (report?.category?.trim()) return report.category.trim();
+  if (report?.domain?.trim()) return report.domain.trim();
 
   const match = report?.description?.match(/^\[([A-Z_]+)\]/);
   if (match?.[1]) return match[1];
@@ -68,26 +68,25 @@ function priorityMeta(severity: Severity | null): {
   return { labelKey: "submitted.priorityMedium", color: colors.severityMed };
 }
 
-function departmentForCategory(category: string | null): string {
-  switch (category) {
-    case "DRAINAGE":
-    case "WATER_SUPPLY":
-      return "Water & Sewerage Department";
-    case "ROADS":
-      return "Roads & Transport Department";
-    case "SANITATION":
-      return "Sanitation Department";
-    case "ELECTRICITY":
-    case "STREETLIGHT":
-      return "Electrical Department";
-    case "PUBLIC_SAFETY":
-      return "Public Safety Department";
-    case "PARKS_AND_TREES":
-      return "Parks & Horticulture Department";
-    case "STRAY_ANIMALS":
-      return "Animal Control Department";
+function universityForDomain(domain: string | null): string {
+  switch (domain) {
+    case "EDUCATION":
+    case "PUBLIC_ADMINISTRATION":
+    case "RURAL_LIVELIHOODS":
+      return "a partner university in your district";
+    case "HEALTHCARE":
+      return "a medical sciences institute in your district";
+    case "AGRICULTURE":
+    case "WATER_RESOURCES":
+      return "an agricultural research university in your district";
+    case "ENVIRONMENT":
+    case "ENERGY":
+    case "URBAN_DEVELOPMENT":
+      return "a technical institute in your district";
+    case "ACCESSIBILITY":
+      return "a partner university in your district";
     default:
-      return "Municipal Services Department";
+      return "a relevant university in your district";
   }
 }
 
@@ -99,16 +98,16 @@ export function ReportSubmittedScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
-  const { issueId, category: paramCategory } = route.params;
+  const { t, domainLabel } = useLanguage();
+  const { issueId, domain: paramDomain } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedCategory = useMemo(
-    () => resolveCategory(report, paramCategory),
-    [report, paramCategory],
+  const resolvedDomain = useMemo(
+    () => resolveDomain(report, paramDomain),
+    [report, paramDomain],
   );
 
   useEffect(() => {
@@ -152,9 +151,9 @@ export function ReportSubmittedScreen() {
     if (!report) return "";
     if (report.aiSummary?.trim()) return report.aiSummary.trim();
     return t("submitted.aiBody", {
-      department: departmentForCategory(resolvedCategory),
+      department: universityForDomain(resolvedDomain),
     });
-  }, [report, resolvedCategory, t]);
+  }, [report, resolvedDomain, t]);
 
   function goHome() {
     navigation.reset({ index: 0, routes: [{ name: "Home" }] });
@@ -213,8 +212,8 @@ export function ReportSubmittedScreen() {
               <View style={styles.metaCell}>
                 <Text style={styles.metaLabel}>{t("submitted.category")}</Text>
                 <Text style={styles.metaValue}>
-                  {resolvedCategory
-                    ? categoryLabel(resolvedCategory)
+                  {resolvedDomain
+                    ? domainLabel(resolvedDomain)
                     : t("common.notSet")}
                 </Text>
               </View>

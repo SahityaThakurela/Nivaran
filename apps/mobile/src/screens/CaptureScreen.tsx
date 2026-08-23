@@ -24,7 +24,7 @@ export function CaptureScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
-  const category = route.params?.category;
+  const domain = route.params?.domain;
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +97,7 @@ export function CaptureScreen() {
       longitude: loc.longitude,
       address:
         loc.address === t("capture.locating") ? undefined : loc.address,
-      category,
+      domain,
     });
   }
 

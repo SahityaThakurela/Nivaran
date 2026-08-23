@@ -25,7 +25,7 @@ export async function callOpenRouter(
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
       "HTTP-Referer": process.env.OPENROUTER_HTTP_REFERER ?? "http://localhost:4000",
-      "X-Title": process.env.OPENROUTER_APP_TITLE ?? "Nivaran Civic Platform",
+      "X-Title": process.env.OPENROUTER_APP_TITLE ?? "Nivaran Societal Innovation Platform",
     },
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
@@ -33,7 +33,7 @@ export async function callOpenRouter(
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "civic_issue_classification",
+          name: "societal_challenge_classification",
           strict: true,
           schema: {
             ...jsonSchema,

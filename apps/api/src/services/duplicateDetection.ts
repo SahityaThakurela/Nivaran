@@ -17,7 +17,7 @@ export interface DuplicateCandidate {
   id: string;
   description: string;
   status: string;
-  category: string | null;
+  domain: string | null;
   distanceMeters: number;
   semanticSimilarity: number | null;
   likelihoodScore: number;
@@ -27,7 +27,7 @@ interface RawCandidateRow {
   id: string;
   description: string;
   status: string;
-  category: string | null;
+  domain: string | null;
   distance_meters: number;
   cosine_distance: number | null;
 }
@@ -63,7 +63,7 @@ export async function findDuplicateCandidates(
       r.id,
       r.description,
       r.status,
-      r.category,
+      r.domain,
       ST_Distance(r.location, target.location) AS distance_meters,
       CASE WHEN r.embedding IS NOT NULL AND target.embedding IS NOT NULL
         THEN (r.embedding <=> target.embedding)
@@ -92,7 +92,7 @@ export async function findDuplicateCandidates(
         id: row.id,
         description: row.description,
         status: row.status,
-        category: row.category,
+        domain: row.domain,
         distanceMeters: Math.round(row.distance_meters),
         semanticSimilarity: semanticScore === null ? null : Number(semanticScore.toFixed(3)),
         likelihoodScore: Number(likelihoodScore.toFixed(3)),

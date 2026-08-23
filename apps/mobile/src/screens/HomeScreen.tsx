@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import type { Report, ReportCategory, ReportStatus } from "../api/types";
+import type { ChallengeDomain, Report, ReportStatus } from "../api/types";
 import { listIssues } from "../api/issues";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
@@ -51,26 +51,27 @@ const PIPELINE: { labelKey: TranslationKey; icon: IconName }[] = [
 ];
 
 type PulseChip = {
-  category: ReportCategory;
+  category: ChallengeDomain;
   icon: IconName;
   count: number;
 };
 
-const CATEGORY_ICONS: Partial<Record<ReportCategory, IconName>> = {
-  WATER_SUPPLY: "water",
-  DRAINAGE: "drainage",
-  ROADS: "roads",
-  SANITATION: "garbage",
-  ELECTRICITY: "electricity",
-  STREETLIGHT: "streetlight",
-  PUBLIC_SAFETY: "citizens",
-  PARKS_AND_TREES: "sparkle",
-  STRAY_ANIMALS: "citizens",
+const DOMAIN_ICONS: Partial<Record<ChallengeDomain, IconName>> = {
+  EDUCATION: "people",
+  HEALTHCARE: "shield",
+  AGRICULTURE: "sanitation",
+  WATER_RESOURCES: "water",
+  ENVIRONMENT: "drainage",
+  ENERGY: "electricity",
+  URBAN_DEVELOPMENT: "roads",
+  ACCESSIBILITY: "eye",
+  PUBLIC_ADMINISTRATION: "hardhat",
+  RURAL_LIVELIHOODS: "citizens",
   OTHER: "filter",
 };
 
-function iconForCategory(category: ReportCategory): IconName {
-  return CATEGORY_ICONS[category] ?? "filter";
+function iconForCategory(domain: ChallengeDomain): IconName {
+  return DOMAIN_ICONS[domain] ?? "filter";
 }
 
 function accentForStatus(status: ReportStatus | string): string {
@@ -130,7 +131,7 @@ function thisMonth(iso: string): boolean {
 export function HomeScreen() {
   const navigation = useNavigation<Nav>();
   const { token, user } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,12 +175,12 @@ export function HomeScreen() {
     ).length;
     const progress = total === 0 ? 0 : Math.min(1, resolved / total);
 
-    const byCategory = new Map<ReportCategory, number>();
+    const byCategory = new Map<ChallengeDomain, number>();
     for (const report of reports) {
-      if (!report.category) continue;
+      if (!report.domain) continue;
       byCategory.set(
-        report.category,
-        (byCategory.get(report.category) ?? 0) + 1,
+        report.domain,
+        (byCategory.get(report.domain) ?? 0) + 1,
       );
     }
 
@@ -195,7 +196,7 @@ export function HomeScreen() {
     const issuesWord = total === 1 ? t("common.issue") : t("common.issues");
     const insight = top
       ? t("home.insightTop", {
-          category: categoryLabel(top.category),
+          category: domainLabel(top.category),
           count: top.count,
           total,
           issues: issuesWord,
@@ -214,10 +215,10 @@ export function HomeScreen() {
       insight,
       recent: reports.slice(0, 2),
     };
-  }, [reports, t, categoryLabel]);
+  }, [reports, t, domainLabel]);
 
-  function goCapture(category?: ReportCategory) {
-    navigation.navigate("Capture", category ? { category } : undefined);
+  function goCapture(domain?: ChallengeDomain) {
+    navigation.navigate("Capture", domain ? { domain } : undefined);
   }
 
   function onNav(tab: NavTab) {
@@ -341,7 +342,7 @@ export function HomeScreen() {
                   <Text style={styles.chipText}>
                     {t("home.pulseChip", {
                       count: chip.count,
-                      category: categoryLabel(chip.category),
+                      category: domainLabel(chip.category),
                       issues:
                         chip.count === 1
                           ? t("common.issue")
@@ -441,14 +442,14 @@ function RecentCard({
   thumbFallback: number;
   onPress: () => void;
 }) {
-  const { t, categoryLabel } = useLanguage();
-  const title = report.category
-    ? categoryLabel(report.category)
+  const { t, domainLabel } = useLanguage();
+  const title = report.domain
+    ? domainLabel(report.domain)
     : report.description.slice(0, 40) || t("common.issue");
   const photo = pickRemotePhotoUrl(report.photoUrls);
   const status = compactStatus(report.status, t);
   const accent = accentForStatus(report.status);
-  const useIconThumb = !photo && report.category === "DRAINAGE";
+  const useIconThumb = !photo && report.domain === "ENVIRONMENT";
 
   return (
     <Pressable style={styles.reportCard} onPress={onPress}>

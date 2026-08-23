@@ -48,7 +48,7 @@ export function AdjustMapScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { t } = useLanguage();
-  const { latitude: initialLat, longitude: initialLng, photoUri, category } =
+  const { latitude: initialLat, longitude: initialLng, photoUri, domain } =
     route.params;
 
   const [pin, setPin] = useState({
@@ -106,7 +106,7 @@ export function AdjustMapScreen() {
           latitude: pin.latitude,
           longitude: pin.longitude,
           address: label,
-          category,
+          domain,
         },
         merge: true,
       });

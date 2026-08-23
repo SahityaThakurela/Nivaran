@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Report, ReportCategory, ReportStatus } from "./types";
+import type { ChallengeDomain, Report, ReportStatus } from "./types";
 
 export type CreateIssueInput = {
   description: string;
@@ -8,12 +8,12 @@ export type CreateIssueInput = {
   longitude: number;
   address?: string;
   photoUrls?: string[];
-  category?: ReportCategory;
+  domain?: ChallengeDomain;
 };
 
 export type ListIssuesQuery = {
   status?: ReportStatus;
-  category?: ReportCategory;
+  domain?: ChallengeDomain;
   /** Citizen-only: narrow the city-wide feed down to reports they filed. */
   mine?: boolean;
 };
@@ -32,7 +32,7 @@ export async function listIssues(
 ): Promise<Report[]> {
   const params = new URLSearchParams();
   if (query?.status) params.set("status", query.status);
-  if (query?.category) params.set("category", query.category);
+  if (query?.domain) params.set("domain", query.domain);
   if (query?.mine) params.set("mine", "true");
   const qs = params.toString();
   const data = await apiClient<ReportsResponse>(
@@ -64,7 +64,7 @@ export async function createIssue(
       longitude: input.longitude,
       address: input.address,
       photoUrls: input.photoUrls,
-      category: input.category,
+      domain: input.domain,
     },
   });
   return data.report;

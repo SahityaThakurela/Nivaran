@@ -6,21 +6,21 @@ export type RootStackParamList = {
   Nearby: undefined;
   Notifications: undefined;
   Profile: undefined;
-  Capture: { category?: string } | undefined;
+  Capture: { domain?: string } | undefined;
   ReportDetails: {
     photoUri: string;
     latitude: number;
     longitude: number;
     address?: string;
-    category?: string;
+    domain?: string;
   };
   AdjustMap: {
     latitude: number;
     longitude: number;
     photoUri: string;
-    category?: string;
+    domain?: string;
   };
-  ReportSubmitted: { issueId: string; category?: string };
+  ReportSubmitted: { issueId: string; domain?: string };
   TrackIssue: { issueId: string };
   VerifyResolution: { issueId: string };
 };

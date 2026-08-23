@@ -2,9 +2,8 @@
 
 export type UserRole =
   | 'CITIZEN'
-  | 'FIELD_WORKER'
-  | 'DEPARTMENT_OPERATOR'
-  | 'MUNICIPAL_ADMIN'
+  | 'UNIVERSITY_ADMIN'
+  | 'GOVERNMENT_ADMIN'
   | 'SUPER_ADMIN';
 
 export type ReportStatus =
@@ -16,17 +15,20 @@ export type ReportStatus =
   | 'REJECTED'
   | 'DUPLICATE';
 
-export type ReportCategory =
-  | 'ROADS'
-  | 'SANITATION'
-  | 'WATER_SUPPLY'
-  | 'ELECTRICITY'
-  | 'DRAINAGE'
-  | 'STREETLIGHT'
-  | 'PUBLIC_SAFETY'
-  | 'PARKS_AND_TREES'
-  | 'STRAY_ANIMALS'
+export type ChallengeDomain =
+  | 'EDUCATION'
+  | 'HEALTHCARE'
+  | 'AGRICULTURE'
+  | 'WATER_RESOURCES'
+  | 'ENVIRONMENT'
+  | 'ENERGY'
+  | 'URBAN_DEVELOPMENT'
+  | 'ACCESSIBILITY'
+  | 'PUBLIC_ADMINISTRATION'
+  | 'RURAL_LIVELIHOODS'
   | 'OTHER';
+
+export type PartnerType = 'STARTUP' | 'MSME' | 'CORPORATE' | 'CSR' | 'RESEARCH_LAB';
 
 export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
@@ -37,7 +39,7 @@ export interface SafeUser {
   phone: string | null;
   role: UserRole;
   cityId: string | null;
-  departmentId: string | null;
+  universityId: string | null;
 }
 
 export interface City {
@@ -46,11 +48,21 @@ export interface City {
   state: string;
 }
 
-export interface Department {
+export interface University {
   id: string;
   name: string;
-  category: ReportCategory;
+  type: string | null;
+  specializations: ChallengeDomain[];
   cityId: string;
+  city?: City;
+}
+
+export interface IndustryPartner {
+  id: string;
+  name: string;
+  type: PartnerType;
+  domains: ChallengeDomain[];
+  contactEmail: string | null;
 }
 
 export interface Report {
@@ -60,7 +72,7 @@ export interface Report {
   address: string | null;
   latitude: number;
   longitude: number;
-  category: ReportCategory | null;
+  domain: ChallengeDomain | null;
   severity: Severity | null;
   aiSummary: string | null;
   aiConfidence: number | null;
@@ -69,15 +81,16 @@ export interface Report {
   isDuplicate: boolean;
   duplicateOfId: string | null;
   duplicates?: Report[];
+  facultyMentor: string | null;
+  teamNote: string | null;
+  industryPartnerId: string | null;
   resolutionEvidenceUrls: string[];
   feedbackRating: number | null;
   feedbackComment: string | null;
   cityId: string;
-  departmentId: string | null;
+  universityId: string | null;
   reportedById: string;
   reportedBy?: SafeUser;
-  assignedToId: string | null;
-  assignedTo?: SafeUser;
   statusEvents?: ReportStatusEvent[];
   createdAt: string;
   updatedAt: string;
@@ -98,9 +111,12 @@ export interface AnalyticsOverview {
   openReports: number;
   pendingClassification: number;
   averageResolutionHours: number | null;
+  universitiesEngaged: number;
+  industryEngagedCount: number;
   byStatus: Record<ReportStatus, number>;
-  byCategory: Record<ReportCategory, number>;
+  byDomain: Record<ChallengeDomain, number>;
   bySeverity: Record<Severity, number>;
+  byUniversity: Array<{ universityId: string; universityName: string; count: number }>;
 }
 
 export interface DuplicateCandidate {

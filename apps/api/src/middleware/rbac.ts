@@ -28,8 +28,8 @@ export function requireRole(...allowedRoles: UserRole[]) {
 }
 
 // Attaches req.scope based on req.user.role — the single place that encodes
-// "a Municipal Admin only ever sees their own city's data" etc, so route
-// handlers never need to re-derive it themselves. Must run after
+// "a Government Admin only ever sees their own district's data" etc, so
+// route handlers never need to re-derive it themselves. Must run after
 // `authenticate`.
 export function requireScope() {
   return (req: Request, res: Response, next: NextFunction) => {
@@ -40,19 +40,20 @@ export function requireScope() {
 
     switch (user.role as UserRole) {
       case UserRole.SUPER_ADMIN:
+        // Dept. of Higher & Technical Education, Govt of Jharkhand — sees
+        // every challenge across every district and university.
         req.scope = {};
         break;
-      case UserRole.MUNICIPAL_ADMIN:
+      case UserRole.GOVERNMENT_ADMIN:
+        // District-level oversight/analytics — replaces MUNICIPAL_ADMIN.
         req.scope = { cityId: user.cityId };
         break;
-      case UserRole.DEPARTMENT_OPERATOR:
-        req.scope = { cityId: user.cityId, departmentId: user.departmentId };
-        break;
-      case UserRole.FIELD_WORKER:
-        req.scope = { assignedToId: user.sub };
+      case UserRole.UNIVERSITY_ADMIN:
+        // Sees only challenges routed to their own institution.
+        req.scope = { universityId: user.universityId };
         break;
       case UserRole.CITIZEN:
-        // Citizens see every report filed in their own city (Nearby/Home
+        // Citizens see every challenge filed in their own district (Nearby/Home
         // feeds are meant to be community-wide, not just "my reports").
         // GET /api/issues?mine=true narrows this back to reportedById for
         // the "My Reports" screen.

@@ -43,7 +43,7 @@ function isActive(status: ReportStatus): boolean {
 export function MyReportsScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -195,7 +195,7 @@ export function MyReportsScreen() {
               <ReportCard
                 key={report.id}
                 report={report}
-                categoryLabel={categoryLabel}
+                domainLabel={domainLabel}
                 t={t}
                 thumbFallback={
                   PLACEHOLDER_THUMBS[index % PLACEHOLDER_THUMBS.length]
@@ -249,7 +249,7 @@ function ReportCard({
   needsVerify,
   onPress,
   onVerify,
-  categoryLabel,
+  domainLabel,
   t,
 }: {
   report: Report;
@@ -257,14 +257,14 @@ function ReportCard({
   needsVerify: boolean;
   onPress: () => void;
   onVerify: () => void;
-  categoryLabel: (category: string) => string;
+  domainLabel: (domain: string) => string;
   t: (
     key: import("../i18n/translations").TranslationKey,
     params?: Record<string, string | number>,
   ) => string;
 }) {
-  const title = report.category
-    ? categoryLabel(report.category)
+  const title = report.domain
+    ? domainLabel(report.domain)
     : report.description.slice(0, 40) || t("reports.issue");
   const progress = reportProgressStep(report.status);
   const resolved = report.status === "RESOLVED";

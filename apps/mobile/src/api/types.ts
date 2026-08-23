@@ -5,7 +5,7 @@ export type SafeUser = {
   phone: string | null;
   role: string;
   cityId: string | null;
-  departmentId: string | null;
+  universityId: string | null;
 };
 
 export type ReportStatus =
@@ -17,16 +17,17 @@ export type ReportStatus =
   | "REJECTED"
   | "DUPLICATE";
 
-export type ReportCategory =
-  | "ROADS"
-  | "SANITATION"
-  | "WATER_SUPPLY"
-  | "ELECTRICITY"
-  | "DRAINAGE"
-  | "STREETLIGHT"
-  | "PUBLIC_SAFETY"
-  | "PARKS_AND_TREES"
-  | "STRAY_ANIMALS"
+export type ChallengeDomain =
+  | "EDUCATION"
+  | "HEALTHCARE"
+  | "AGRICULTURE"
+  | "WATER_RESOURCES"
+  | "ENVIRONMENT"
+  | "ENERGY"
+  | "URBAN_DEVELOPMENT"
+  | "ACCESSIBILITY"
+  | "PUBLIC_ADMINISTRATION"
+  | "RURAL_LIVELIHOODS"
   | "OTHER";
 
 export type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -38,7 +39,7 @@ export type Report = {
   address: string | null;
   latitude: number;
   longitude: number;
-  category: ReportCategory | null;
+  domain: ChallengeDomain | null;
   severity: Severity | null;
   aiSummary: string | null;
   aiConfidence: number | null;
@@ -51,7 +52,10 @@ export type Report = {
   feedbackComment?: string | null;
   cityId: string;
   reportedById: string;
-  assignedToId: string | null;
+  universityId: string | null;
+  facultyMentor?: string | null;
+  teamNote?: string | null;
+  industryPartnerId?: string | null;
   createdAt: string;
   updatedAt: string;
 };

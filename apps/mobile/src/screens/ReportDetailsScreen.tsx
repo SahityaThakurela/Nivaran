@@ -13,7 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import type { ReportCategory } from "../api/types";
+import type { ChallengeDomain } from "../api/types";
 import { createIssue } from "../api/issues";
 import { uploadIssuePhoto } from "../api/photos";
 import { DEFAULT_CITY_ID } from "../api/config";
@@ -30,34 +30,40 @@ import { colors, fonts } from "../theme/tokens";
 type Nav = NativeStackNavigationProp<RootStackParamList, "ReportDetails">;
 type Route = RouteProp<RootStackParamList, "ReportDetails">;
 
-const CATEGORY_CHIPS: {
+const DOMAIN_CHIPS: {
   labelKey: TranslationKey;
-  value: ReportCategory;
+  value: ChallengeDomain;
   icon: IconName;
 }[] = [
-  { labelKey: "details.chipWater", value: "WATER_SUPPLY", icon: "water" },
-  { labelKey: "details.chipDrainage", value: "DRAINAGE", icon: "drainage" },
-  { labelKey: "details.chipRoads", value: "ROADS", icon: "roads" },
-  { labelKey: "details.chipGarbage", value: "SANITATION", icon: "garbage" },
-  { labelKey: "details.chipStreetlight", value: "STREETLIGHT", icon: "streetlight" },
+  { labelKey: "details.chipEducation", value: "EDUCATION", icon: "people" },
+  { labelKey: "details.chipHealthcare", value: "HEALTHCARE", icon: "shield" },
+  { labelKey: "details.chipAgriculture", value: "AGRICULTURE", icon: "sanitation" },
+  { labelKey: "details.chipWater", value: "WATER_RESOURCES", icon: "water" },
+  { labelKey: "details.chipEnvironment", value: "ENVIRONMENT", icon: "drainage" },
+  { labelKey: "details.chipEnergy", value: "ENERGY", icon: "electricity" },
+  { labelKey: "details.chipUrban", value: "URBAN_DEVELOPMENT", icon: "roads" },
+  { labelKey: "details.chipAccessibility", value: "ACCESSIBILITY", icon: "eye" },
+  { labelKey: "details.chipPublicAdmin", value: "PUBLIC_ADMINISTRATION", icon: "hardhat" },
+  { labelKey: "details.chipRural", value: "RURAL_LIVELIHOODS", icon: "citizens" },
   { labelKey: "details.chipOther", value: "OTHER", icon: "other" },
 ];
 
-const VALID_CATEGORIES = new Set<string>([
-  "ROADS",
-  "SANITATION",
-  "WATER_SUPPLY",
-  "ELECTRICITY",
-  "DRAINAGE",
-  "STREETLIGHT",
-  "PUBLIC_SAFETY",
-  "PARKS_AND_TREES",
-  "STRAY_ANIMALS",
+const VALID_DOMAINS = new Set<string>([
+  "EDUCATION",
+  "HEALTHCARE",
+  "AGRICULTURE",
+  "WATER_RESOURCES",
+  "ENVIRONMENT",
+  "ENERGY",
+  "URBAN_DEVELOPMENT",
+  "ACCESSIBILITY",
+  "PUBLIC_ADMINISTRATION",
+  "RURAL_LIVELIHOODS",
   "OTHER",
 ]);
 
-function asReportCategory(value?: string | null): ReportCategory | null {
-  if (value && VALID_CATEGORIES.has(value)) return value as ReportCategory;
+function asChallengeDomain(value?: string | null): ChallengeDomain | null {
+  if (value && VALID_DOMAINS.has(value)) return value as ChallengeDomain;
   return null;
 }
 
@@ -68,13 +74,13 @@ export function ReportDetailsScreen() {
   const route = useRoute<Route>();
   const { token, user } = useAuth();
   const { t } = useLanguage();
-  const { photoUri, category: initialCategory } = route.params;
+  const { photoUri, domain: initialDomain } = route.params;
 
   const [latitude, setLatitude] = useState(route.params.latitude);
   const [longitude, setLongitude] = useState(route.params.longitude);
   const [address, setAddress] = useState(route.params.address);
-  const [category, setCategory] = useState<ReportCategory | null>(
-    (initialCategory as ReportCategory | undefined) ?? null,
+  const [category, setCategory] = useState<ChallengeDomain | null>(
+    (initialDomain as ChallengeDomain | undefined) ?? null,
   );
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,14 +94,14 @@ export function ReportDetailsScreen() {
     setLatitude(route.params.latitude);
     setLongitude(route.params.longitude);
     setAddress(route.params.address);
-    if (route.params.category) {
-      setCategory(route.params.category as ReportCategory);
+    if (route.params.domain) {
+      setCategory(route.params.domain as ChallengeDomain);
     }
   }, [
     route.params.latitude,
     route.params.longitude,
     route.params.address,
-    route.params.category,
+    route.params.domain,
   ]);
 
   useEffect(() => {
@@ -114,7 +120,7 @@ export function ReportDetailsScreen() {
       latitude,
       longitude,
       photoUri,
-      category: category ?? initialCategory,
+      domain: category ?? initialDomain,
     });
   }
 
@@ -147,10 +153,10 @@ export function ReportDetailsScreen() {
       return;
     }
 
-    const selectedCategory =
-      category ?? asReportCategory(initialCategory);
+    const selectedDomain =
+      category ?? asChallengeDomain(initialDomain);
 
-    if (!selectedCategory) {
+    if (!selectedDomain) {
       setError(t("details.needCategory"));
       return;
     }
@@ -160,17 +166,17 @@ export function ReportDetailsScreen() {
     try {
       const photoUrl = await uploadIssuePhoto(token, photoUri);
       const report = await createIssue(token, {
-        description: `[${selectedCategory}] ${description.trim()}`,
+        description: `[${selectedDomain}] ${description.trim()}`,
         cityId,
         latitude,
         longitude,
         address,
         photoUrls: [photoUrl],
-        category: selectedCategory,
+        domain: selectedDomain,
       });
       navigation.replace("ReportSubmitted", {
         issueId: report.id,
-        category: selectedCategory,
+        domain: selectedDomain,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : t("details.failedSubmit"));
@@ -240,7 +246,7 @@ export function ReportDetailsScreen() {
 
           <Text style={styles.sectionLabel}>{t("details.category")}</Text>
           <View style={styles.chips}>
-            {CATEGORY_CHIPS.map((chip) => {
+            {DOMAIN_CHIPS.map((chip) => {
               const selected = category === chip.value;
               return (
                 <Pressable

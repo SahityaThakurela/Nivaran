@@ -5,7 +5,7 @@ import {
   ChevronUp, ChevronDown, RefreshCw, Flame,
 } from 'lucide-react';
 import { getIssues } from '../api/issues';
-import type { Report, ReportStatus, ReportCategory } from '../api/types';
+import type { Report, ReportStatus, ChallengeDomain } from '../api/types';
 import { StatusPill } from '../components/StatusPill';
 import { PriorityBadge } from '../components/PriorityBadge';
 import { TableSkeleton } from '../components/SkeletonLoader';
@@ -18,9 +18,9 @@ type SLAFilter = '' | 'breached' | 'at-risk';
 const STATUS_OPTIONS: ReportStatus[] = [
   'SUBMITTED', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'REJECTED', 'DUPLICATE',
 ];
-const CATEGORY_OPTIONS: ReportCategory[] = [
-  'ROADS', 'SANITATION', 'WATER_SUPPLY', 'ELECTRICITY', 'DRAINAGE',
-  'STREETLIGHT', 'PUBLIC_SAFETY', 'PARKS_AND_TREES', 'STRAY_ANIMALS', 'OTHER',
+const DOMAIN_OPTIONS: ChallengeDomain[] = [
+  'EDUCATION', 'HEALTHCARE', 'AGRICULTURE', 'WATER_RESOURCES', 'ENVIRONMENT',
+  'ENERGY', 'URBAN_DEVELOPMENT', 'ACCESSIBILITY', 'PUBLIC_ADMINISTRATION', 'RURAL_LIVELIHOODS', 'OTHER',
 ];
 
 const SLA_RANK: Record<string, number> = { breached: 0, 'at-risk': 1, ok: 2 };
@@ -43,7 +43,7 @@ export default function IssueQueue() {
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [statusFilter, setStatusFilter] = useState<ReportStatus | ''>((searchParams.get('status') as ReportStatus) ?? '');
-  const [categoryFilter, setCategoryFilter] = useState<ReportCategory | ''>('');
+  const [domainFilter, setDomainFilter] = useState<ChallengeDomain | ''>('');
   const [slaFilter, setSlaFilter] = useState<SLAFilter>('');
   const [sortKey, setSortKey] = useState<SortKey>('sla');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -54,7 +54,7 @@ export default function IssueQueue() {
     try {
       const res = await getIssues({
         status: statusFilter || undefined,
-        category: categoryFilter || undefined,
+        domain: domainFilter || undefined,
       });
       setReports(res.reports);
     } catch (e) {
@@ -62,7 +62,7 @@ export default function IssueQueue() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, categoryFilter]);
+  }, [statusFilter, domainFilter]);
 
   useEffect(() => {
     fetchReports();
@@ -85,7 +85,7 @@ export default function IssueQueue() {
         r.id.toLowerCase().includes(q) ||
         r.description.toLowerCase().includes(q) ||
         r.address?.toLowerCase().includes(q) ||
-        r.category?.toLowerCase().includes(q)
+        r.domain?.toLowerCase().includes(q)
       );
     })
     .filter((r) => {
@@ -127,9 +127,9 @@ export default function IssueQueue() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Issues</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Challenges</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {loading ? 'Loading…' : `${filteredReports.length} reports found`}
+            {loading ? 'Loading…' : `${filteredReports.length} challenges found`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -191,16 +191,16 @@ export default function IssueQueue() {
           ))}
         </select>
 
-        {/* Category filter */}
+        {/* Domain filter */}
         <select
-          id="category-filter"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value as ReportCategory | '')}
+          id="domain-filter"
+          value={domainFilter}
+          onChange={(e) => setDomainFilter(e.target.value as ChallengeDomain | '')}
           className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white text-gray-700"
         >
-          <option value="">All Categories</option>
-          {CATEGORY_OPTIONS.map((c) => (
-            <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>
+          <option value="">All Domains</option>
+          {DOMAIN_OPTIONS.map((d) => (
+            <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
           ))}
         </select>
 
@@ -234,7 +234,7 @@ export default function IssueQueue() {
         {/* Table header */}
         <div className="grid grid-cols-[auto_1fr_120px_100px_120px_130px_80px_32px] gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
           <span>Evidence</span>
-          <span>Issue</span>
+          <span>Challenge</span>
           <button
             onClick={() => handleSort('status')}
             className="flex items-center gap-1 hover:text-gray-900 transition-colors text-left"
@@ -270,7 +270,7 @@ export default function IssueQueue() {
         ) : filteredReports.length === 0 ? (
           <div className="px-4 py-16 text-center">
             <AlertTriangle size={32} className="text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-400 text-sm">No issues match your filters.</p>
+            <p className="text-gray-400 text-sm">No challenges match your filters.</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
@@ -302,8 +302,8 @@ export default function IssueQueue() {
                     <p className="text-sm font-semibold text-gray-900 truncate group-hover:text-blue-700 transition-colors">
                       {r.description.slice(0, 70)}
                     </p>
-                    {r.category && (
-                      <span className="text-[10px] font-medium text-gray-400">{r.category.replace(/_/g, ' ')}</span>
+                    {r.domain && (
+                      <span className="text-[10px] font-medium text-gray-400">{r.domain.replace(/_/g, ' ')}</span>
                     )}
                   </div>
 

@@ -41,15 +41,15 @@ export function buildNotificationItems(
   verifiedIds: Iterable<string>,
   readIds: Iterable<string>,
   t: TranslateFn,
-  categoryLabel: (category: string) => string,
+  domainLabel: (domain: string) => string,
 ): NotificationItem[] {
   const verified = asSet(verifiedIds);
   const read = asSet(readIds);
   const items: NotificationItem[] = [];
 
   for (const report of reports) {
-    const label = report.category
-      ? categoryLabel(report.category)
+    const label = report.domain
+      ? domainLabel(report.domain)
       : t("notif.yourReport");
 
     items.push({
@@ -63,8 +63,8 @@ export function buildNotificationItems(
       icon: "check",
     });
 
-    if (report.category) {
-      const catLabel = categoryLabel(report.category);
+    if (report.domain) {
+      const catLabel = domainLabel(report.domain);
       items.push({
         id: `${report.id}:ai`,
         issueId: report.id,

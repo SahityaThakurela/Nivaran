@@ -6,7 +6,7 @@ import {
   Filter, TrendingUp, Clock, AlertTriangle,
 } from 'lucide-react';
 import { getIssues } from '../api/issues';
-import type { Report, ReportStatus, ReportCategory } from '../api/types';
+import type { Report, ReportStatus, ChallengeDomain } from '../api/types';
 import { StatusPill } from '../components/StatusPill';
 
 // Fix default Leaflet icon path (Vite/webpack issue)
@@ -65,9 +65,9 @@ function FitBounds({ reports }: { reports: Report[] }) {
 const STATUS_OPTIONS: ReportStatus[] = [
   'SUBMITTED', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'REJECTED', 'DUPLICATE',
 ];
-const CATEGORY_OPTIONS: ReportCategory[] = [
-  'ROADS', 'SANITATION', 'WATER_SUPPLY', 'ELECTRICITY', 'DRAINAGE',
-  'STREETLIGHT', 'PUBLIC_SAFETY', 'PARKS_AND_TREES', 'STRAY_ANIMALS', 'OTHER',
+const DOMAIN_OPTIONS: ChallengeDomain[] = [
+  'EDUCATION', 'HEALTHCARE', 'AGRICULTURE', 'WATER_RESOURCES', 'ENVIRONMENT',
+  'ENERGY', 'URBAN_DEVELOPMENT', 'ACCESSIBILITY', 'PUBLIC_ADMINISTRATION', 'RURAL_LIVELIHOODS', 'OTHER',
 ];
 
 export default function MapView() {
@@ -75,17 +75,17 @@ export default function MapView() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<ReportStatus | ''>('');
-  const [categoryFilter, setCategoryFilter] = useState<ReportCategory | ''>('');
+  const [domainFilter, setDomainFilter] = useState<ChallengeDomain | ''>('');
 
   useEffect(() => {
     setLoading(true);
     getIssues({
       status: statusFilter || undefined,
-      category: categoryFilter || undefined,
+      domain: domainFilter || undefined,
     })
       .then((res) => setReports(res.reports))
       .finally(() => setLoading(false));
-  }, [statusFilter, categoryFilter]);
+  }, [statusFilter, domainFilter]);
 
   // Live hotspot sidebar: take top 6 by priorityScore
   const hotspots = [...reports]
@@ -111,13 +111,13 @@ export default function MapView() {
           </select>
           <div className="w-px h-4 bg-gray-200" />
           <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value as ReportCategory | '')}
+            value={domainFilter}
+            onChange={(e) => setDomainFilter(e.target.value as ChallengeDomain | '')}
             className="text-xs border-none outline-none bg-transparent text-gray-700 cursor-pointer pr-1"
           >
-            <option value="">Category ▾</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>
+            <option value="">Domain ▾</option>
+            {DOMAIN_OPTIONS.map((d) => (
+              <option key={d} value={d}>{d.replace(/_/g, ' ')}</option>
             ))}
           </select>
         </div>
@@ -133,8 +133,8 @@ export default function MapView() {
         )}
 
         <MapContainer
-          center={[28.6139, 77.2090]}
-          zoom={11}
+          center={[23.3441, 85.3096]}
+          zoom={8}
           className="h-full w-full z-0"
           zoomControl={false}
         >
@@ -158,14 +158,14 @@ export default function MapView() {
                     <StatusPill status={r.status} size="sm" />
                   </div>
                   <p className="font-semibold text-gray-900 text-sm mb-1">
-                    {r.category?.replace(/_/g, ' ') ?? 'Uncategorised'}
+                    {r.domain?.replace(/_/g, ' ') ?? 'Uncategorised'}
                   </p>
                   <p className="text-xs text-gray-500 mb-3 line-clamp-2">{r.description}</p>
                   <button
                     onClick={() => navigate(`/issues/${r.id}`)}
                     className="w-full text-xs font-semibold text-white bg-blue-700 px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors"
                   >
-                    View Issue Details
+                    View Challenge Details
                   </button>
                 </div>
               </Popup>
@@ -212,9 +212,9 @@ export default function MapView() {
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className={`text-[10px] font-bold uppercase
-                      ${r.category === 'DRAINAGE' ? 'text-red-600' :
-                        r.category === 'ROADS' ? 'text-amber-600' : 'text-blue-600'}`}>
-                      🔥 {r.category?.replace(/_/g, ' ') ?? 'Other'}
+                      ${r.domain === 'HEALTHCARE' ? 'text-red-600' :
+                        r.domain === 'EDUCATION' ? 'text-amber-600' : 'text-blue-600'}`}>
+                      🔥 {r.domain?.replace(/_/g, ' ') ?? 'Other'}
                     </span>
                     <span className="text-[10px] text-gray-400">{formatRelativeTime(r.createdAt)}</span>
                   </div>

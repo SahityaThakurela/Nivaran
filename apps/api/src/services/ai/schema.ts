@@ -1,11 +1,11 @@
 import { z } from "zod";
-import { ReportCategory, Severity } from "@prisma/client";
+import { ChallengeDomain, Severity } from "@prisma/client";
 
 // Single source of truth: Prisma's generated enums drive both the runtime
 // validation (Zod) below and the JSON Schema we hand to OpenRouter, so the two
 // can never drift out of sync with each other or with the database.
 export const ClassificationSchema = z.object({
-  category: z.enum(ReportCategory),
+  domain: z.enum(ChallengeDomain),
   severity: z.enum(Severity),
   summary: z.string().min(1).max(300),
   confidence: z.number().min(0).max(1),
@@ -17,24 +17,24 @@ export type ClassificationResult = z.infer<typeof ClassificationSchema>;
 export const classificationJsonSchema = {
   type: "object",
   properties: {
-    category: {
+    domain: {
       type: "string",
-      enum: Object.values(ReportCategory),
-      description: "Best-matching civic issue category.",
+      enum: Object.values(ChallengeDomain),
+      description: "Best-matching thematic domain for this societal challenge.",
     },
     severity: {
       type: "string",
       enum: Object.values(Severity),
-      description: "How urgent/severe the issue is.",
+      description: "How urgent/severe the challenge is.",
     },
     summary: {
       type: "string",
-      description: "One-sentence, plain-language summary of the issue.",
+      description: "One-sentence, plain-language summary of the challenge.",
     },
     confidence: {
       type: "number",
       description: "Confidence in this classification, from 0 to 1.",
     },
   },
-  required: ["category", "severity", "summary", "confidence"],
+  required: ["domain", "severity", "summary", "confidence"],
 };

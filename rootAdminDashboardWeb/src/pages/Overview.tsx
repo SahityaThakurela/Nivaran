@@ -37,20 +37,20 @@ function buildWeeklyData(reports: Report[]) {
 
 const INSIGHTS = [
   {
-    title: 'Drainage Issues Surge',
-    desc: 'Drainage-related reports increased by 23% this week, primarily in low-lying sectors.',
+    title: 'Healthcare Challenges Surge',
+    desc: 'Healthcare-related challenges increased by 23% this week, primarily from rural districts.',
     color: 'bg-red-50 border-red-200',
     dot: 'bg-red-500',
   },
   {
-    title: 'Sector 62 Hotspot',
-    desc: 'Sector 62 currently has the highest volume of open reports, requiring immediate resource allocation.',
+    title: 'Ranchi District Hotspot',
+    desc: 'Ranchi district currently has the highest volume of open challenges, requiring university capacity planning.',
     color: 'bg-amber-50 border-amber-200',
     dot: 'bg-amber-500',
   },
   {
-    title: 'Efficiency Gains',
-    desc: 'Overall resolution time improved by 18% due to new automated dispatch protocols.',
+    title: 'Routing Efficiency Gains',
+    desc: 'Time-to-routing improved by 18% due to the new AI-assisted university matching.',
     color: 'bg-green-50 border-green-200',
     dot: 'bg-green-500',
   },
@@ -91,8 +91,8 @@ export default function Overview() {
       {/* Page header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Civic Overview</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Real-time pulse of city operations and issue resolution metrics.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Innovation Overview</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Real-time pulse of challenge routing and university/industry collaboration.</p>
         </div>
         <div className="flex items-center gap-2.5">
           <button className="flex items-center gap-2 text-sm font-medium text-gray-600 border border-gray-200 bg-white px-3.5 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-card">
@@ -114,7 +114,7 @@ export default function Overview() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
-            label="Critical Issues"
+            label="Critical Challenges"
             value={criticalCount.toString()}
             delta="+4 from yesterday"
             deltaType="bad"
@@ -122,7 +122,7 @@ export default function Overview() {
             iconBg="bg-red-50"
           />
           <KpiCard
-            label="Open Issues"
+            label="Open Challenges"
             value={openCount.toString()}
             delta="Stable"
             deltaType="neutral"
@@ -138,7 +138,7 @@ export default function Overview() {
             iconBg="bg-green-50"
           />
           <KpiCard
-            label="Avg Resolution Time"
+            label="Avg Time to Resolution"
             value={avgDays ? `${avgDays} days` : '—'}
             delta="Improved by 18%"
             deltaType="good"
@@ -153,7 +153,7 @@ export default function Overview() {
         {/* Line Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-card p-5">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-900">Reported vs Resolved Issues</h2>
+            <h2 className="text-sm font-semibold text-gray-900">Reported vs Resolved Challenges</h2>
           </div>
           {loadingReports ? (
             <SkeletonBlock className="h-56 w-full" />
@@ -212,7 +212,7 @@ export default function Overview() {
       {/* Recent Critical Reports */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-card">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="text-sm font-semibold text-gray-900">Recent Critical Reports</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Recent Critical Challenges</h2>
           <Link
             to="/issues?status=SUBMITTED&severity=CRITICAL"
             className="text-xs font-medium text-blue-700 hover:underline flex items-center gap-1"
@@ -260,7 +260,7 @@ export default function Overview() {
                     <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 uppercase tracking-wide">
                       CRITICAL
                     </span>
-                    <span className="text-xs text-gray-400">{r.category?.replace(/_/g, ' ') ?? 'Uncategorised'}</span>
+                    <span className="text-xs text-gray-400">{r.domain?.replace(/_/g, ' ') ?? 'Uncategorised'}</span>
                   </div>
                   <p className="text-sm font-semibold text-gray-900 truncate">{r.description.slice(0, 60)}</p>
                   <p className="text-xs text-gray-400 mt-0.5">

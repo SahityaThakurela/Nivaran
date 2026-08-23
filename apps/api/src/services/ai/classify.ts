@@ -3,13 +3,19 @@ import { callOpenRouter } from "./openRouterClient";
 import { classifyByKeyword } from "./keywordFallback";
 import { generateEmbedding } from "./embeddings";
 import { recalculatePriorityScore } from "../priorityScore";
+import { routeReportToUniversity } from "../routing";
 import { ClassificationSchema, classificationJsonSchema, type ClassificationResult } from "./schema";
 
-const PROMPT_PREFIX = `You are a triage assistant for a municipal civic-issue reporting platform.
-Read the citizen's report below (and any attached photos) and classify it.
+const PROMPT_PREFIX = `You are a triage assistant for a societal-innovation platform run by the
+Department of Higher & Technical Education, Government of Jharkhand. Citizens, community
+organizations, local bodies, and government agencies submit local challenges (education,
+healthcare, agriculture, water resources, environment, energy, urban development,
+accessibility, public administration, rural livelihoods, etc.) that need evaluation and
+routing to the right university/research institution.
+Read the submitted challenge below (and any attached photos) and classify it.
 Respond only with the requested JSON — no extra commentary.
 
-Report description: `;
+Challenge description: `;
 
 export interface ClassificationOutcome extends ClassificationResult {
   method: "llm" | "keyword-fallback";
@@ -46,7 +52,7 @@ export async function classifyAndUpdateReport(reportId: string) {
   await prisma.report.update({
     where: { id: reportId },
     data: {
-      category: result.category,
+      domain: result.domain,
       severity: result.severity,
       aiSummary: result.summary,
       aiConfidence: result.confidence,
@@ -62,6 +68,10 @@ export async function classifyAndUpdateReport(reportId: string) {
       UPDATE "Report" SET embedding = ${vectorLiteral}::vector WHERE id = ${reportId}
     `;
   }
+
+  // Now that the domain is known, try to auto-route this to a university —
+  // the one piece the old schema promised but never implemented.
+  await routeReportToUniversity(reportId);
 
   // Severity/confidence just changed, so priority needs recomputing too —
   // this is the final write, so its return value has every field current.

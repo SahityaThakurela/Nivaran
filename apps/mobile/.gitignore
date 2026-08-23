@@ -21,6 +21,9 @@ expo-env.d.ts
 # Metro
 .metro-health-check*
 
+# Portable cloudflared binary (downloaded by start-tunnel.mjs if needed)
+scripts/.bin/
+
 # debug
 npm-debug.*
 yarn-debug.*

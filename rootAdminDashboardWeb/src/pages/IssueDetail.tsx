@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, MapPin, Clock, Users, Share2, Loader2,
   AlertTriangle, CheckCircle2, RefreshCw, ChevronRight,
-  FileImage, Zap,
+  FileImage, Zap, Building2, GraduationCap, Handshake,
 } from 'lucide-react';
 import { getIssue, getDuplicates, updateIssue, triggerAiAnalysis } from '../api/issues';
-import type { Report, DuplicateCandidate, ReportStatus } from '../api/types';
+import { getUniversities } from '../api/universities';
+import { getIndustryPartners } from '../api/industryPartners';
+import type { Report, DuplicateCandidate, ReportStatus, University, IndustryPartner } from '../api/types';
 import { StatusPill } from '../components/StatusPill';
 import { PriorityBadge } from '../components/PriorityBadge';
 import { SkeletonBlock } from '../components/SkeletonLoader';
@@ -35,6 +37,8 @@ export default function IssueDetail() {
 
   const [report, setReport] = useState<Report | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
+  const [universities, setUniversities] = useState<University[]>([]);
+  const [partners, setPartners] = useState<IndustryPartner[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -46,6 +50,9 @@ export default function IssueDetail() {
   // Action center state (local, applied on save)
   const [selectedStatus, setSelectedStatus] = useState<ReportStatus | ''>('');
   const [assignNote, setAssignNote] = useState('');
+  const [facultyMentor, setFacultyMentor] = useState('');
+  const [teamNote, setTeamNote] = useState('');
+  const [industryPartnerId, setIndustryPartnerId] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -53,11 +60,18 @@ export default function IssueDetail() {
     Promise.all([
       getIssue(id),
       getDuplicates(id).catch(() => ({ candidates: [] })),
+      getUniversities().catch(() => ({ universities: [] as University[] })),
+      getIndustryPartners().catch(() => ({ partners: [] as IndustryPartner[] })),
     ])
-      .then(([r, d]) => {
+      .then(([r, d, uni, p]) => {
         setReport(r.report);
         setSelectedStatus(r.report.status);
+        setFacultyMentor(r.report.facultyMentor ?? '');
+        setTeamNote(r.report.teamNote ?? '');
+        setIndustryPartnerId(r.report.industryPartnerId ?? '');
         setDuplicates(d.candidates);
+        setUniversities(uni.universities);
+        setPartners(p.partners);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -75,6 +89,23 @@ export default function IssueDetail() {
       setAssignNote('');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleSaveTeam() {
+    if (!id) return;
+    setSaving(true);
+    try {
+      const res = await updateIssue(id, {
+        facultyMentor: facultyMentor.trim() || null,
+        teamNote: teamNote.trim() || null,
+        industryPartnerId: industryPartnerId || null,
+      });
+      setReport(res.report);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Team update failed');
     } finally {
       setSaving(false);
     }
@@ -172,12 +203,12 @@ export default function IssueDetail() {
           <div>
             <div className="flex items-center gap-3 flex-wrap mb-2">
               <h1 className="text-2xl font-bold text-gray-900">
-                Issue #{report.id.slice(-8).toUpperCase()}
+                Challenge #{report.id.slice(-8).toUpperCase()}
               </h1>
               <PriorityBadge score={report.priorityScore} severity={report.severity} />
-              {report.category && (
+              {report.domain && (
                 <span className="px-2.5 py-1 rounded-full bg-gray-100 text-xs font-medium text-gray-600">
-                  {report.category.replace(/_/g, ' ')}
+                  {report.domain.replace(/_/g, ' ')}
                 </span>
               )}
             </div>
@@ -186,7 +217,7 @@ export default function IssueDetail() {
               <span className="flex items-center gap-1 text-red-600 font-medium">
                 <Clock size={12} /> {formatRelativeTime(report.createdAt)} unresolved
               </span>
-              <span className="flex items-center gap-1"><Users size={12} /> {report.isDuplicate ? 'Duplicate' : 'Unique'} Report</span>
+              <span className="flex items-center gap-1"><Users size={12} /> {report.isDuplicate ? 'Duplicate' : 'Unique'} Challenge</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -265,12 +296,12 @@ export default function IssueDetail() {
                 <Zap size={15} className="text-blue-600" />
                 <h3 className="text-sm font-semibold text-gray-900">Nivaran AI Analysis</h3>
               </div>
-              {report.category ? (
+              {report.domain ? (
                 <div className="space-y-3">
                   <div className="grid grid-cols-3 gap-2 text-center">
                     <div className="bg-gray-50 rounded-lg p-2.5">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Category</p>
-                      <p className="text-sm font-bold text-gray-900 mt-0.5">{report.category.replace(/_/g, ' ')}</p>
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wide">Domain</p>
+                      <p className="text-sm font-bold text-gray-900 mt-0.5">{report.domain.replace(/_/g, ' ')}</p>
                     </div>
                     <div className="bg-red-50 rounded-lg p-2.5">
                       <p className="text-[10px] text-gray-400 uppercase tracking-wide">Severity</p>
@@ -389,20 +420,22 @@ export default function IssueDetail() {
               </select>
             </div>
 
-            {/* Assignment */}
+            {/* University routing */}
             <div className="mb-4 bg-blue-600/40 rounded-lg p-3 space-y-2">
-              {report.assignedTo ? (
+              {report.universityId ? (
                 <div className="flex items-center gap-2">
                   <div className="h-7 w-7 rounded-full bg-blue-400/30 flex items-center justify-center text-blue-100 text-xs font-bold">
-                    {report.assignedTo.name.charAt(0)}
+                    <Building2 size={14} />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">{report.assignedTo.name}</p>
-                    <p className="text-[10px] text-blue-200">Assigned</p>
+                    <p className="text-sm font-medium text-white">
+                      {universities.find((u) => u.id === report.universityId)?.name ?? report.universityId}
+                    </p>
+                    <p className="text-[10px] text-blue-200">Routed institution</p>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-blue-200">No field worker assigned</p>
+                <p className="text-sm text-blue-200">Not yet routed to a university</p>
               )}
             </div>
 
@@ -428,11 +461,67 @@ export default function IssueDetail() {
             </button>
           </div>
 
+          {/* Team Formation & Industry Partner */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <GraduationCap size={15} className="text-gray-400" />
+              Team Formation
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1.5">Faculty Mentor</label>
+                <input
+                  id="faculty-mentor-input"
+                  type="text"
+                  value={facultyMentor}
+                  onChange={(e) => setFacultyMentor(e.target.value)}
+                  placeholder="e.g. Dr. Anita Kumar, CSE Dept."
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 placeholder:text-gray-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1.5">Team Note</label>
+                <textarea
+                  id="team-note-input"
+                  rows={2}
+                  value={teamNote}
+                  onChange={(e) => setTeamNote(e.target.value)}
+                  placeholder="Multidisciplinary student team, project scope, etc."
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 placeholder:text-gray-400"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1.5 flex items-center gap-1.5">
+                  <Handshake size={12} /> Industry Partner
+                </label>
+                <select
+                  id="industry-partner-select"
+                  value={industryPartnerId}
+                  onChange={(e) => setIndustryPartnerId(e.target.value)}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white"
+                >
+                  <option value="">None</option>
+                  {partners.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name} ({p.type.replace(/_/g, ' ')})</option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleSaveTeam}
+                disabled={saving}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white bg-teal-600 py-2.5 rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-60"
+              >
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                Save Team Details
+              </button>
+            </div>
+          </div>
+
           {/* Issue Timeline */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Clock size={15} className="text-gray-400" />
-              Issue Timeline
+              Challenge Timeline
             </h3>
             {report.statusEvents && report.statusEvents.length > 0 ? (
               <ol className="space-y-4">

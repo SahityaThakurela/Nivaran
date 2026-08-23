@@ -10,12 +10,12 @@ if (!rawSecret) {
 const JWT_SECRET: string = rawSecret;
 
 // What we embed in every token. The RBAC middleware (next step) reads
-// `role`/`cityId`/`departmentId` straight off this, no extra DB lookup needed.
+// `role`/`cityId`/`universityId` straight off this, no extra DB lookup needed.
 export interface AuthTokenPayload {
   sub: string;
   role: string;
   cityId: string | null;
-  departmentId: string | null;
+  universityId: string | null;
 }
 
 export function signAuthToken(payload: AuthTokenPayload): string {

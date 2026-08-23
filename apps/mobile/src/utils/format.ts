@@ -71,8 +71,8 @@ export function formatStatusLabel(
   return titleCaseWords(status);
 }
 
-export function formatCategoryLabel(category: string): string {
-  return titleCaseWords(category);
+export function formatDomainLabel(domain: string): string {
+  return titleCaseWords(domain);
 }
 
 export function formatSeverityLabel(

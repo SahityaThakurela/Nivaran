@@ -8,7 +8,7 @@ import React, {
   useState,
 } from "react";
 import {
-  categoryKey,
+  domainKey,
   translate,
   type Locale,
   type TranslationKey,
@@ -25,7 +25,7 @@ type LanguageContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   t: TFunction;
-  categoryLabel: (category: string) => string;
+  domainLabel: (domain: string) => string;
   ready: boolean;
 };
 
@@ -63,11 +63,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     [locale],
   );
 
-  const categoryLabel = useCallback(
-    (category: string) => {
-      const key = categoryKey(category);
+  const domainLabel = useCallback(
+    (domain: string) => {
+      const key = domainKey(domain);
       if (key) return t(key);
-      return category
+      return domain
         .toLowerCase()
         .split("_")
         .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
@@ -77,8 +77,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ locale, setLocale, t, categoryLabel, ready }),
-    [locale, setLocale, t, categoryLabel, ready],
+    () => ({ locale, setLocale, t, domainLabel, ready }),
+    [locale, setLocale, t, domainLabel, ready],
   );
 
   return (

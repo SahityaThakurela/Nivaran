@@ -43,19 +43,19 @@ export default function Login() {
             <span className="font-bold text-2xl tracking-tight">NIVARAN</span>
           </div>
           <h1 className="text-4xl font-bold leading-tight text-balance mb-4">
-            Civic Authority<br />Command Centre
+            Societal Innovation<br />Collaboration Portal
           </h1>
           <p className="text-blue-200 text-lg leading-relaxed max-w-sm">
-            Real-time intelligence for city operations. Triage issues, manage field teams, and resolve citizen complaints — all from one dashboard.
+            Government of Jharkhand · Department of Higher &amp; Technical Education. Route citizen challenges to universities, coordinate faculty-led teams, and bring in industry partners — all from one dashboard.
           </p>
         </div>
 
         {/* Stats teaser */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Issues Resolved', value: '12,480+' },
-            { label: 'Avg. Resolution', value: '2.4 days' },
-            { label: 'Cities Active', value: '8' },
+            { label: 'Challenges Routed', value: '1,240+' },
+            { label: 'Universities Engaged', value: '8' },
+            { label: 'Districts Active', value: '6' },
           ].map((s) => (
             <div key={s.label} className="bg-white/10 rounded-xl p-4">
               <p className="text-2xl font-bold">{s.value}</p>
@@ -75,7 +75,7 @@ export default function Login() {
           </div>
 
           <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>
-          <p className="text-gray-500 text-sm mb-7">Sign in to the Authority Dashboard</p>
+          <p className="text-gray-500 text-sm mb-7">Sign in to the Innovation Portal</p>
 
           {error && (
             <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-3.5 mb-5 animate-slide-in">
@@ -95,7 +95,7 @@ export default function Login() {
                 autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@nivaran.city"
+                placeholder="admin@highereducation.jharkhand.gov.in"
                 className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 placeholder:text-gray-400 transition-all"
               />
             </div>
@@ -137,7 +137,7 @@ export default function Login() {
           </form>
 
           <p className="text-xs text-gray-400 text-center mt-8">
-            Nivaran Civic Platform · Authority Portal
+            Nivaran Societal Innovation Platform · Govt. of Jharkhand
           </p>
         </div>
       </div>

@@ -18,7 +18,7 @@ pnpm start
 | Variable | Purpose |
 | --- | --- |
 | `EXPO_PUBLIC_API_URL` | Optional. Leave empty in local dev (auto-uses Mac LAN IP from Expo). Do not use `127.0.0.1` on Android. |
-| `EXPO_PUBLIC_DEFAULT_CITY_ID` | Required for filing reports. Use a `City.id` from the DB (Noida is seeded as `cmtcitynoida000000000001`). |
+| `EXPO_PUBLIC_DEFAULT_CITY_ID` | Required for filing challenges. Use a `City.id` from the DB (Ranchi, Jharkhand is seeded as `cmtcityranchi00000000001` — run `pnpm prisma:seed` in `apps/api`). |
 
 ## Screens
 

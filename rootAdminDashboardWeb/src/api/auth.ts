@@ -21,7 +21,7 @@ export async function register(data: {
   password: string;
   role?: string;
   cityId?: string;
-  departmentId?: string;
+  universityId?: string;
 }): Promise<LoginResponse> {
   return apiClient.post<LoginResponse>('/auth/register', data);
 }

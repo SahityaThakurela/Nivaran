@@ -33,7 +33,7 @@ export function VerifyResolutionScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const { issueId } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
@@ -121,9 +121,7 @@ export function VerifyResolutionScreen() {
           </View>
 
           <Text style={styles.issueTitle}>
-            {report.category
-              ? categoryLabel(report.category)
-              : t("common.issue")}
+            {report.domain ? domainLabel(report.domain) : t("common.issue")}
           </Text>
           <Text style={styles.address}>
             {report.address ?? t("common.locationPending")}

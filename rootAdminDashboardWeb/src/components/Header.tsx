@@ -35,7 +35,7 @@ export function Header({ title, subtitle, actions }: Props) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search cases, teams..."
+            placeholder="Search challenges, universities..."
             className="w-full pl-9 pr-4 py-2 text-sm rounded-full bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 placeholder:text-gray-400 transition-all"
           />
         </div>
@@ -62,21 +62,21 @@ export function Header({ title, subtitle, actions }: Props) {
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500" />
         </button>
 
-        {/* Report Issue */}
+        {/* Report Challenge */}
         <button
           id="report-issue-btn"
           onClick={() => navigate('/issues/new')}
           className="flex items-center gap-1.5 bg-blue-700 text-white text-sm font-semibold px-3.5 py-2 rounded-lg hover:bg-blue-800 transition-colors shadow-sm"
         >
           <Plus size={15} />
-          Report Issue
+          Report Challenge
         </button>
 
         {/* User avatar */}
         <div className="flex items-center gap-2">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold text-gray-800">{user?.name ?? 'Admin'}</p>
-            <p className="text-[10px] text-gray-400">Admin Authority</p>
+            <p className="text-[10px] text-gray-400">Govt. of Jharkhand</p>
           </div>
           <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm shrink-0">
             {user?.name?.charAt(0).toUpperCase() ?? 'A'}

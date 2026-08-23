@@ -31,7 +31,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, "Notifications">;
 export function NotificationsScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const [reports, setReports] = useState<Report[]>([]);
   const [verifiedIds, setVerifiedIds] = useState<string[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
@@ -92,8 +92,8 @@ export function NotificationsScreen() {
   );
 
   const items = useMemo(
-    () => buildNotificationItems(reports, verifiedIds, readIds, t, categoryLabel),
-    [reports, verifiedIds, readIds, t, categoryLabel],
+    () => buildNotificationItems(reports, verifiedIds, readIds, t, domainLabel),
+    [reports, verifiedIds, readIds, t, domainLabel],
   );
 
   async function markAllRead() {

@@ -229,7 +229,7 @@ export default function Settings() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Platform configuration and automation preferences.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Platform configuration, routing automation, and notification preferences.</p>
         </div>
         <button
           id="save-settings-btn"
@@ -252,7 +252,7 @@ export default function Settings() {
       {/* Info banner */}
       <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-blue-50 border border-blue-100 text-sm text-blue-700">
         <Info size={15} className="shrink-0 mt-0.5" />
-        <span>Changes take effect immediately for all users in your city. No restart is needed.</span>
+        <span>Changes take effect immediately for all users in your district. No restart is needed.</span>
       </div>
 
       {/* ── Section 1: AI & Automation ─────────────────────────────────────── */}
@@ -263,8 +263,8 @@ export default function Settings() {
       >
         <SliderRow
           id="ai-confidence-threshold"
-          label="Auto-Assignment Confidence Threshold"
-          description="Only auto-assign issues to departments when the AI confidence exceeds this value. Lower = more automation, higher = more manual control."
+          label="Auto-Routing Confidence Threshold"
+          description="Only auto-route challenges to universities when the AI confidence exceeds this value. Lower = more automation, higher = more manual control."
           value={aiConfidenceThreshold}
           min={0.5}
           max={0.99}
@@ -275,8 +275,8 @@ export default function Settings() {
         <div className="border-t border-gray-100" />
         <ToggleRow
           id="auto-assign-toggle"
-          label="Enable Automatic Department Assignment"
-          description="When enabled, reports meeting the confidence threshold are assigned to the appropriate department without manual intervention."
+          label="Enable Automatic University Routing"
+          description="When enabled, challenges meeting the confidence threshold are routed to a matching university without manual intervention."
           checked={autoAssign}
           onChange={setAutoAssign}
         />
@@ -332,7 +332,7 @@ export default function Settings() {
         </div>
         <p className="text-xs text-gray-400 flex items-start gap-1.5 mt-1">
           <Info size={12} className="shrink-0 mt-0.5" />
-          SLA badges in the Issues queue are calculated in real-time based on these values.
+          SLA badges in the Challenges queue are calculated in real-time based on these values.
         </p>
       </Section>
 
@@ -344,8 +344,8 @@ export default function Settings() {
       >
         <ToggleRow
           id="notif-email-critical"
-          label="Email on Critical Issues"
-          description="Send an email to all Municipal Admins when a critical-severity report is filed."
+          label="Email on Critical Challenges"
+          description="Send an email to all Government Admins when a critical-severity challenge is filed."
           checked={notif.emailCritical}
           onChange={(v) => setNotif((n) => ({ ...n, emailCritical: v }))}
         />
@@ -353,7 +353,7 @@ export default function Settings() {
         <ToggleRow
           id="notif-email-digest"
           label="Daily Email Digest"
-          description="Send a daily summary of open, breached, and newly resolved issues at 8:00 AM."
+          description="Send a daily summary of open, breached, and newly resolved challenges at 8:00 AM."
           checked={notif.emailDigest}
           onChange={(v) => setNotif((n) => ({ ...n, emailDigest: v }))}
         />

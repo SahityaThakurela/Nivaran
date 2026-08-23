@@ -39,7 +39,7 @@ const FALLBACK_THUMB = require("../../assets/images/nearby-thumb.png");
 
 function reportTitle(
   report: Report,
-  categoryLabel: (category: string) => string,
+  domainLabel: (domain: string) => string,
   issueFallback: string,
 ): string {
   const stripped = report.description.replace(/^\[[A-Z_]+\]\s*/, "").trim();
@@ -51,7 +51,7 @@ function reportTitle(
       ? `${report.aiSummary.slice(0, 42)}…`
       : report.aiSummary;
   }
-  return report.category ? categoryLabel(report.category) : issueFallback;
+  return report.domain ? domainLabel(report.domain) : issueFallback;
 }
 
 function statusMeta(
@@ -91,7 +91,7 @@ function statusMeta(
 export function NearbyScreen() {
   const navigation = useNavigation<Nav>();
   const { token } = useAuth();
-  const { t, categoryLabel } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const [reports, setReports] = useState<LocatedReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +171,7 @@ export function NearbyScreen() {
         id: r.id,
         latitude: r.latitude,
         longitude: r.longitude,
-        category: r.category,
+        domain: r.domain,
         photoUrl: pickRemotePhotoUrl(r.photoUrls),
       })),
     [reports],
@@ -243,7 +243,7 @@ export function NearbyScreen() {
                     <Text style={styles.sheetTitle} numberOfLines={1}>
                       {reportTitle(
                         selected,
-                        categoryLabel,
+                        domainLabel,
                         t("nearby.issue"),
                       )}
                     </Text>
@@ -300,7 +300,7 @@ export function NearbyScreen() {
                         <Text style={styles.listTitleText} numberOfLines={1}>
                           {reportTitle(
                             report,
-                            categoryLabel,
+                            domainLabel,
                             t("nearby.issue"),
                           )}
                         </Text>

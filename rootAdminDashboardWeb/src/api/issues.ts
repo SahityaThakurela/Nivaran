@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Report, ReportStatus, ReportCategory, DuplicateCandidate } from './types';
+import type { Report, ReportStatus, ChallengeDomain, DuplicateCandidate } from './types';
 
 export interface ReportsResponse {
   reports: Report[];
@@ -15,11 +15,11 @@ export interface DuplicatesResponse {
 
 export function getIssues(params?: {
   status?: ReportStatus;
-  category?: ReportCategory;
+  domain?: ChallengeDomain;
 }): Promise<ReportsResponse> {
   const qs = new URLSearchParams();
   if (params?.status) qs.set('status', params.status);
-  if (params?.category) qs.set('category', params.category);
+  if (params?.domain) qs.set('domain', params.domain);
   const query = qs.toString() ? `?${qs.toString()}` : '';
   return apiClient.get<ReportsResponse>(`/issues${query}`);
 }
@@ -37,8 +37,10 @@ export function updateIssue(
   id: string,
   data: {
     status?: ReportStatus;
-    assignedToId?: string | null;
-    departmentId?: string | null;
+    universityId?: string | null;
+    facultyMentor?: string | null;
+    teamNote?: string | null;
+    industryPartnerId?: string | null;
     note?: string;
     duplicateOfId?: string | null;
   }
