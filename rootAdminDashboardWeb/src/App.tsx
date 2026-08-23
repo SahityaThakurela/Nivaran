@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics';
 import AdminManagement from './pages/AdminManagement';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
+import AuditLog from './pages/AuditLog';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -53,6 +54,7 @@ function AppRoutes() {
         <Route path="/departments" element={<AdminManagement />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/audit" element={<AuditLog />} />
       </Route>
 
       {/* Catch-all */}

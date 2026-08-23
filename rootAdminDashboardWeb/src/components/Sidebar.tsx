@@ -10,6 +10,7 @@ import {
   Settings,
   ClipboardList,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,6 +62,12 @@ const NAV_ITEMS: NavItem[] = [
     to: '/departments',
     icon: <Building2 size={18} />,
     label: 'Departments',
+    roles: ['MUNICIPAL_ADMIN', 'SUPER_ADMIN'],
+  },
+  {
+    to: '/audit',
+    icon: <Shield size={18} />,
+    label: 'Audit Log',
     roles: ['MUNICIPAL_ADMIN', 'SUPER_ADMIN'],
   },
 ];
