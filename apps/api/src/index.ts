@@ -4,6 +4,7 @@ import cors from "cors";
 import { prisma } from "./lib/prisma";
 import { authRouter } from "./routes/auth.routes";
 import { issueRouter } from "./routes/issue.routes";
+import { photoRouter } from "./routes/photo.routes";
 import { aiRouter } from "./routes/ai.routes";
 import { taskRouter } from "./routes/task.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
@@ -14,7 +15,7 @@ const app = express();
 const PORT = process.env.PORT ?? 4000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 
 // Health check that also confirms Prisma can actually reach Postgres,
 // not just that the Express process is alive.
@@ -36,6 +37,8 @@ app.get("/health", async (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+// Mount before /api/issues so /photos is not swallowed by /:id.
+app.use("/api/issues/photos", photoRouter);
 app.use("/api/issues", issueRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/tasks", taskRouter);

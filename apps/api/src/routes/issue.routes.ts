@@ -38,6 +38,16 @@ issueRouter.post("/", async (req, res) => {
       ? (category as ReportCategory)
       : undefined;
 
+  // Only persist fetchable URLs. Local device paths (file://, content://) only
+  // work on the uploader's phone and show as blank thumbs for everyone else.
+  const sanitizedPhotoUrls = Array.isArray(photoUrls)
+    ? photoUrls.filter(
+        (url): url is string =>
+          typeof url === "string" &&
+          (/^https?:\/\//i.test(url) || url.startsWith("data:image/")),
+      )
+    : [];
+
   const report = await prisma.report.create({
     data: {
       description,
@@ -45,7 +55,7 @@ issueRouter.post("/", async (req, res) => {
       latitude,
       longitude,
       address: address ?? null,
-      photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
+      photoUrls: sanitizedPhotoUrls,
       ...(categoryValue ? { category: categoryValue } : {}),
       reportedById: req.user!.sub,
       status: ReportStatus.SUBMITTED,

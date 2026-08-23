@@ -24,6 +24,7 @@ import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import { formatRelativeTime } from "../utils/format";
+import { pickRemotePhotoUrl } from "../utils/photoUrl";
 import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "TrackIssue">;
@@ -139,8 +140,9 @@ export function TrackIssueScreen() {
     handleTabNavigate(navigation, tab, "reports");
   }
 
-  const heroSource = report?.photoUrls[0]
-    ? { uri: report.photoUrls[0] }
+  const remotePhoto = pickRemotePhotoUrl(report?.photoUrls);
+  const heroSource = remotePhoto
+    ? { uri: remotePhoto }
     : require("../../assets/images/track-hero.png");
 
   const sev = severityLabel(report?.severity ?? null);

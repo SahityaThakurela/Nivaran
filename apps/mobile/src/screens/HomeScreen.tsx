@@ -3,7 +3,6 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,12 +16,14 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
+import { ReportPhoto } from "../components/ReportPhoto";
 import { useLanguage } from "../i18n/LanguageContext";
 import type { TranslationKey } from "../i18n/translations";
 import { handleTabNavigate } from "../navigation/tabNavigate";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 import { formatRelativeTime, greetingForNow } from "../utils/format";
+import { pickRemotePhotoUrl } from "../utils/photoUrl";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Home">;
 
@@ -444,7 +445,7 @@ function RecentCard({
   const title = report.category
     ? categoryLabel(report.category)
     : report.description.slice(0, 40) || t("common.issue");
-  const photo = report.photoUrls[0];
+  const photo = pickRemotePhotoUrl(report.photoUrls);
   const status = compactStatus(report.status, t);
   const accent = accentForStatus(report.status);
   const useIconThumb = !photo && report.category === "DRAINAGE";
@@ -457,10 +458,10 @@ function RecentCard({
           <Icon name="drainage" width={22} height={17} color={HERO_BLUE} />
         </View>
       ) : (
-        <Image
-          source={photo ? { uri: photo } : thumbFallback}
+        <ReportPhoto
+          urls={report.photoUrls}
+          fallback={thumbFallback}
           style={styles.thumb}
-          resizeMode="cover"
         />
       )}
       <View style={styles.reportBody}>

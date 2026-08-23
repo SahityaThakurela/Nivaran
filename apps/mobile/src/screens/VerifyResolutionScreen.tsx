@@ -23,6 +23,7 @@ import { Icon } from "../components/Icon";
 import { useLanguage } from "../i18n/LanguageContext";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
+import { pickRemotePhotoUrl } from "../utils/photoUrl";
 import { verifiedStorageKey } from "../utils/notifications";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "VerifyResolution">;
@@ -81,11 +82,12 @@ export function VerifyResolutionScreen() {
     navigation.navigate("TrackIssue", { issueId });
   }
 
-  const beforeSource = report?.photoUrls[0]
-    ? { uri: report.photoUrls[0] }
+  const beforeUri = pickRemotePhotoUrl(report?.photoUrls);
+  const beforeSource = beforeUri
+    ? { uri: beforeUri }
     : require("../../assets/images/verify-before.png");
 
-  const afterUri = report?.resolutionEvidenceUrls?.[0];
+  const afterUri = pickRemotePhotoUrl(report?.resolutionEvidenceUrls);
   const afterSource = afterUri
     ? { uri: afterUri }
     : require("../../assets/images/verify-after.png");

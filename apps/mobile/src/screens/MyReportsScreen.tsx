@@ -4,7 +4,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,7 @@ import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
+import { ReportPhoto } from "../components/ReportPhoto";
 import { StatusBadge } from "../components/StatusBadge";
 import { useLanguage } from "../i18n/LanguageContext";
 import { handleTabNavigate } from "../navigation/tabNavigate";
@@ -266,7 +266,6 @@ function ReportCard({
   const title = report.category
     ? categoryLabel(report.category)
     : report.description.slice(0, 40) || t("reports.issue");
-  const photo = report.photoUrls[0];
   const progress = reportProgressStep(report.status);
   const resolved = report.status === "RESOLVED";
   const inProgress =
@@ -281,10 +280,10 @@ function ReportCard({
       ]}
       onPress={onPress}
     >
-      <Image
-        source={photo ? { uri: photo } : thumbFallback}
+      <ReportPhoto
+        urls={report.photoUrls}
+        fallback={thumbFallback}
         style={styles.thumb}
-        resizeMode="cover"
       />
       <View style={styles.cardBody}>
         <Text

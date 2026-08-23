@@ -4,7 +4,6 @@ import * as Location from "expo-location";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import { AppHeader } from "../components/AppHeader";
 import { BottomNav, type NavTab } from "../components/BottomNav";
 import { Icon } from "../components/Icon";
 import { OsmNearbyMap } from "../components/OsmNearbyMap";
+import { ReportPhoto } from "../components/ReportPhoto";
 import { StatusBadge } from "../components/StatusBadge";
 import { useLanguage } from "../i18n/LanguageContext";
 import type { TranslationKey } from "../i18n/translations";
@@ -29,6 +29,7 @@ import {
   formatDistance,
   formatRelativeTime,
 } from "../utils/format";
+import { pickRemotePhotoUrl } from "../utils/photoUrl";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Nearby">;
 
@@ -171,7 +172,7 @@ export function NearbyScreen() {
         latitude: r.latitude,
         longitude: r.longitude,
         category: r.category,
-        photoUrl: r.photoUrls[0] ?? null,
+        photoUrl: pickRemotePhotoUrl(r.photoUrls),
       })),
     [reports],
   );
@@ -233,14 +234,10 @@ export function NearbyScreen() {
               <View style={styles.sheet}>
                 <View style={styles.sheetHandle} />
                 <View style={styles.sheetRow}>
-                  <Image
-                    source={
-                      selected.photoUrls[0]
-                        ? { uri: selected.photoUrls[0] }
-                        : FALLBACK_THUMB
-                    }
+                  <ReportPhoto
+                    urls={selected.photoUrls}
+                    fallback={FALLBACK_THUMB}
                     style={styles.sheetThumb}
-                    resizeMode="cover"
                   />
                   <View style={styles.sheetBody}>
                     <Text style={styles.sheetTitle} numberOfLines={1}>
@@ -282,7 +279,6 @@ export function NearbyScreen() {
                 const place =
                   report.address?.split(",")[0]?.trim() ||
                   t("nearby.location");
-                const photo = report.photoUrls[0];
 
                 return (
                   <Pressable
@@ -293,10 +289,10 @@ export function NearbyScreen() {
                     ]}
                     onPress={() => openIssue(report.id)}
                   >
-                    <Image
-                      source={photo ? { uri: photo } : FALLBACK_THUMB}
+                    <ReportPhoto
+                      urls={report.photoUrls}
+                      fallback={FALLBACK_THUMB}
                       style={styles.listThumb}
-                      resizeMode="cover"
                     />
 
                     <View style={styles.listBody}>

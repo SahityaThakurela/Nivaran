@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import type { ReportCategory } from "../api/types";
 import { createIssue } from "../api/issues";
+import { uploadIssuePhoto } from "../api/photos";
 import { DEFAULT_CITY_ID } from "../api/config";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
@@ -157,13 +158,14 @@ export function ReportDetailsScreen() {
     setBusy(true);
     setError(null);
     try {
+      const photoUrl = await uploadIssuePhoto(token, photoUri);
       const report = await createIssue(token, {
         description: `[${selectedCategory}] ${description.trim()}`,
         cityId,
         latitude,
         longitude,
         address,
-        photoUrls: [photoUri],
+        photoUrls: [photoUrl],
         category: selectedCategory,
       });
       navigation.replace("ReportSubmitted", {
@@ -301,7 +303,7 @@ export function ReportDetailsScreen() {
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
           <AppButton
-            label={t("details.submit")}
+            label={busy ? t("details.uploading") : t("details.submit")}
             onPress={() => void handleSubmit()}
             iconRight="send"
             disabled={busy}

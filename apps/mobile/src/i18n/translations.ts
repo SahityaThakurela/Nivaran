@@ -153,6 +153,7 @@ const en = {
   "details.description": "Description",
   "details.placeholder": "Describe the issue…",
   "details.submit": "Submit Report",
+  "details.uploading": "Uploading photo…",
   "details.signInAgain": "Please sign in again.",
   "details.missingCity":
     "Missing city ID. Set EXPO_PUBLIC_DEFAULT_CITY_ID in .env.",
@@ -419,6 +420,7 @@ const hi: Record<TranslationKey, string> = {
   "details.description": "विवरण",
   "details.placeholder": "समस्या बताएँ…",
   "details.submit": "रिपोर्ट जमा करें",
+  "details.uploading": "फ़ोटो अपलोड हो रही है…",
   "details.signInAgain": "कृपया फिर से साइन इन करें।",
   "details.missingCity":
     "सिटी ID गायब है। .env में EXPO_PUBLIC_DEFAULT_CITY_ID सेट करें।",

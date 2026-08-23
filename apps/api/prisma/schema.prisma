@@ -166,6 +166,18 @@ model Report {
   @@index([departmentId, status])
 }
 
+// Issue evidence photos stored in Postgres and served at /api/issues/photos/:id.
+// Mobile used to persist local file:// URIs, which only work on the uploader's device.
+model IssuePhoto {
+  id           String   @id @default(cuid())
+  mimeType     String
+  data         Bytes
+  uploadedById String
+  createdAt    DateTime @default(now())
+
+  @@index([uploadedById])
+}
+
 // Audit trail — every status change is logged, not overwritten. Also what
 // powers the "track status" timeline in the mobile app.
 model ReportStatusEvent {
