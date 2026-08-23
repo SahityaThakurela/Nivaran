@@ -61,7 +61,7 @@ export function MyReportsScreen() {
         setLoading(true);
         setError(null);
         try {
-          const list = await listIssues(token);
+          const list = await listIssues(token, { mine: true });
           if (cancelled) return;
           setReports(list);
 

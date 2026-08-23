@@ -72,7 +72,7 @@ issueRouter.post("/", async (req, res) => {
 // field workers see what's assigned to them, department operators/municipal
 // admins see their department/city, super admins see everything.
 issueRouter.get("/", requireScope(), async (req, res) => {
-  const { status, category } = req.query;
+  const { status, category, mine } = req.query;
   const statusFilter = typeof status === "string" ? status : undefined;
   const categoryFilter = typeof category === "string" ? category : undefined;
 
@@ -83,9 +83,17 @@ issueRouter.get("/", requireScope(), async (req, res) => {
     return res.status(400).json({ error: "Invalid category filter" });
   }
 
+  // Citizens are city-scoped by default (Nearby/Home are community feeds).
+  // "My Reports" opts back into reportedById-only via ?mine=true.
+  const mineFilter =
+    mine === "true" && req.user!.role === UserRole.CITIZEN
+      ? { reportedById: req.user!.sub }
+      : {};
+
   const reports = await prisma.report.findMany({
     where: {
       ...req.scope,
+      ...mineFilter,
       ...(statusFilter ? { status: statusFilter as ReportStatus } : {}),
       ...(categoryFilter ? { category: categoryFilter as ReportCategory } : {}),
     },

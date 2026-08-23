@@ -14,6 +14,8 @@ export type CreateIssueInput = {
 export type ListIssuesQuery = {
   status?: ReportStatus;
   category?: ReportCategory;
+  /** Citizen-only: narrow the city-wide feed down to reports they filed. */
+  mine?: boolean;
 };
 
 type ReportsResponse = {
@@ -31,6 +33,7 @@ export async function listIssues(
   const params = new URLSearchParams();
   if (query?.status) params.set("status", query.status);
   if (query?.category) params.set("category", query.category);
+  if (query?.mine) params.set("mine", "true");
   const qs = params.toString();
   const data = await apiClient<ReportsResponse>(
     `/api/issues${qs ? `?${qs}` : ""}`,

@@ -52,7 +52,11 @@ export function requireScope() {
         req.scope = { assignedToId: user.sub };
         break;
       case UserRole.CITIZEN:
-        req.scope = { reportedById: user.sub };
+        // Citizens see every report filed in their own city (Nearby/Home
+        // feeds are meant to be community-wide, not just "my reports").
+        // GET /api/issues?mine=true narrows this back to reportedById for
+        // the "My Reports" screen.
+        req.scope = { cityId: user.cityId };
         break;
       default:
         return res.status(403).json({ error: "Unknown role" });
