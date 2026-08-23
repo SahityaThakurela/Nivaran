@@ -2,6 +2,8 @@ packages:
   - "apps/*"
   - "packages/*"
   - "rootAdminDashboardWeb"
+# Prefer hoisted installs for React Native / EAS native builds in this monorepo.
+nodeLinker: hoisted
 allowBuilds:
   '@prisma/client': true
   '@prisma/engines': true
