@@ -1,0 +1,21 @@
+# EAS uses this instead of .gitignore when present.
+# Paths are relative to the git repository root.
+
+node_modules/
+**/node_modules/
+.pnpm-store/
+.expo/
+.turbo/
+dist/
+.next/
+**/.DS_Store
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+
+apps/mobile/android/
+apps/mobile/ios/
+apps/api/
+apps/dashboard/
+.cursor/

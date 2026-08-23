@@ -1,19 +1,27 @@
+import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DashboardLayout } from './components/DashboardLayout';
 
-// Pages
-import Login from './pages/Login';
-import Overview from './pages/Overview';
-import IssueQueue from './pages/IssueQueue';
-import IssueDetail from './pages/IssueDetail';
-import MapView from './pages/MapView';
-import TaskView from './pages/TaskView';
-import Analytics from './pages/Analytics';
-import AdminManagement from './pages/AdminManagement';
-import Notifications from './pages/Notifications';
-import Settings from './pages/Settings';
-import AuditLog from './pages/AuditLog';
+const Login = lazy(() => import('./pages/Login'));
+const Overview = lazy(() => import('./pages/Overview'));
+const IssueQueue = lazy(() => import('./pages/IssueQueue'));
+const IssueDetail = lazy(() => import('./pages/IssueDetail'));
+const MapView = lazy(() => import('./pages/MapView'));
+const TaskView = lazy(() => import('./pages/TaskView'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const AdminManagement = lazy(() => import('./pages/AdminManagement'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Settings = lazy(() => import('./pages/Settings'));
+const AuditLog = lazy(() => import('./pages/AuditLog'));
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-sm text-gray-500">
+      Loading…
+    </div>
+  );
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -27,39 +35,40 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          <AuthRoute>
-            <Login />
-          </AuthRoute>
-        }
-      />
+    <Suspense fallback={<PageFallback />}>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            <AuthRoute>
+              <Login />
+            </AuthRoute>
+          }
+        />
 
-      <Route
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<Overview />} />
-        <Route path="/issues" element={<IssueQueue />} />
-        <Route path="/issues/:id" element={<IssueDetail />} />
-        <Route path="/map" element={<MapView />} />
-        <Route path="/tasks" element={<TaskView />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/teams" element={<AdminManagement />} />
-        <Route path="/departments" element={<AdminManagement />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/audit" element={<AuditLog />} />
-      </Route>
+        <Route
+          element={
+            <ProtectedRoute>
+              <DashboardLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/" element={<Overview />} />
+          <Route path="/issues" element={<IssueQueue />} />
+          <Route path="/issues/:id" element={<IssueDetail />} />
+          <Route path="/map" element={<MapView />} />
+          <Route path="/tasks" element={<TaskView />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/teams" element={<AdminManagement />} />
+          <Route path="/departments" element={<AdminManagement />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/audit" element={<AuditLog />} />
+        </Route>
 
-      {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

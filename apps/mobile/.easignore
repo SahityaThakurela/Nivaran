@@ -1,0 +1,23 @@
+# When .easignore exists, EAS ignores .gitignore — keep both in sync.
+node_modules/
+**/node_modules/
+.pnpm-store/
+.expo/
+.turbo/
+dist/
+.next/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Local native folders (EAS regenerates via prebuild)
+android/
+ios/
+
+# Monorepo noise (paths relative to git root upload)
+../../.pnpm-store/
+../api/
+../dashboard/
+../../.cursor/
