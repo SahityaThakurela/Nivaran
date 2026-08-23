@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
-import type { Report, ReportCategory, Severity } from "../api/types";
+import type { Report, Severity } from "../api/types";
 import { getIssue } from "../api/issues";
 import { useAuth } from "../auth/AuthContext";
 import { AppHeader } from "../components/AppHeader";
@@ -39,6 +39,22 @@ function stripCategoryPrefix(description: string): string {
   return description.replace(/^\[[A-Z_]+\]\s*/, "").trim();
 }
 
+/** Prefer nav param (user pick), then API category, then `[CATEGORY]` prefix. */
+function resolveCategory(
+  report: Report | null,
+  paramCategory?: string,
+): string | null {
+  const fromParam = paramCategory?.trim();
+  if (fromParam) return fromParam;
+
+  if (report?.category?.trim()) return report.category.trim();
+
+  const match = report?.description?.match(/^\[([A-Z_]+)\]/);
+  if (match?.[1]) return match[1];
+
+  return null;
+}
+
 function priorityMeta(severity: Severity | null): {
   labelKey: TranslationKey;
   color: string;
@@ -52,7 +68,7 @@ function priorityMeta(severity: Severity | null): {
   return { labelKey: "submitted.priorityMedium", color: colors.severityMed };
 }
 
-function departmentForCategory(category: ReportCategory | null): string {
+function departmentForCategory(category: string | null): string {
   switch (category) {
     case "DRAINAGE":
     case "WATER_SUPPLY":
@@ -84,11 +100,16 @@ export function ReportSubmittedScreen() {
   const route = useRoute<Route>();
   const { token } = useAuth();
   const { t, categoryLabel } = useLanguage();
-  const { issueId } = route.params;
+  const { issueId, category: paramCategory } = route.params;
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const resolvedCategory = useMemo(
+    () => resolveCategory(report, paramCategory),
+    [report, paramCategory],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -131,9 +152,9 @@ export function ReportSubmittedScreen() {
     if (!report) return "";
     if (report.aiSummary?.trim()) return report.aiSummary.trim();
     return t("submitted.aiBody", {
-      department: departmentForCategory(report.category),
+      department: departmentForCategory(resolvedCategory),
     });
-  }, [report, t]);
+  }, [report, resolvedCategory, t]);
 
   function goHome() {
     navigation.reset({ index: 0, routes: [{ name: "Home" }] });
@@ -192,9 +213,9 @@ export function ReportSubmittedScreen() {
               <View style={styles.metaCell}>
                 <Text style={styles.metaLabel}>{t("submitted.category")}</Text>
                 <Text style={styles.metaValue}>
-                  {report.category
-                    ? categoryLabel(report.category)
-                    : categoryLabel("OTHER")}
+                  {resolvedCategory
+                    ? categoryLabel(resolvedCategory)
+                    : t("common.notSet")}
                 </Text>
               </View>
               <View style={styles.metaCell}>

@@ -157,6 +157,7 @@ const en = {
   "details.missingCity":
     "Missing city ID. Set EXPO_PUBLIC_DEFAULT_CITY_ID in .env.",
   "details.needDescription": "Please add a short description.",
+  "details.needCategory": "Please select a category.",
   "details.needLocation": "Set a location on the map before submitting.",
   "details.failedSubmit": "Failed to submit report.",
   "details.chipWater": "Water",
@@ -422,6 +423,7 @@ const hi: Record<TranslationKey, string> = {
   "details.missingCity":
     "सिटी ID गायब है। .env में EXPO_PUBLIC_DEFAULT_CITY_ID सेट करें।",
   "details.needDescription": "कृपया संक्षिप्त विवरण जोड़ें।",
+  "details.needCategory": "कृपया एक श्रेणी चुनें।",
   "details.needLocation": "जमा करने से पहले मानचित्र पर स्थान सेट करें।",
   "details.failedSubmit": "रिपोर्ट जमा नहीं हो सकी।",
   "details.chipWater": "पानी",

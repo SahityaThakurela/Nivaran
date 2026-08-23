@@ -23,13 +23,20 @@ issueRouter.use(authenticate);
 // filing on someone's behalf is allowed too). No requireScope() here —
 // creating a report has no "existing data" to scope against yet.
 issueRouter.post("/", async (req, res) => {
-  const { description, cityId, latitude, longitude, address, photoUrls } = req.body ?? {};
+  const { description, cityId, latitude, longitude, address, photoUrls, category } =
+    req.body ?? {};
 
   if (!description || !cityId || latitude === undefined || longitude === undefined) {
     return res.status(400).json({
       error: "description, cityId, latitude, and longitude are required",
     });
   }
+
+  const categoryValue =
+    typeof category === "string" &&
+    Object.values(ReportCategory).includes(category as ReportCategory)
+      ? (category as ReportCategory)
+      : undefined;
 
   const report = await prisma.report.create({
     data: {
@@ -39,6 +46,7 @@ issueRouter.post("/", async (req, res) => {
       longitude,
       address: address ?? null,
       photoUrls: Array.isArray(photoUrls) ? photoUrls : [],
+      ...(categoryValue ? { category: categoryValue } : {}),
       reportedById: req.user!.sub,
       status: ReportStatus.SUBMITTED,
     },

@@ -8,6 +8,7 @@ export type CreateIssueInput = {
   longitude: number;
   address?: string;
   photoUrls?: string[];
+  category?: ReportCategory;
 };
 
 export type ListIssuesQuery = {
@@ -60,6 +61,7 @@ export async function createIssue(
       longitude: input.longitude,
       address: input.address,
       photoUrls: input.photoUrls,
+      category: input.category,
     },
   });
   return data.report;

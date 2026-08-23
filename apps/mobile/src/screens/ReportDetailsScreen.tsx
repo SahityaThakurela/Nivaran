@@ -42,6 +42,24 @@ const CATEGORY_CHIPS: {
   { labelKey: "details.chipOther", value: "OTHER", icon: "other" },
 ];
 
+const VALID_CATEGORIES = new Set<string>([
+  "ROADS",
+  "SANITATION",
+  "WATER_SUPPLY",
+  "ELECTRICITY",
+  "DRAINAGE",
+  "STREETLIGHT",
+  "PUBLIC_SAFETY",
+  "PARKS_AND_TREES",
+  "STRAY_ANIMALS",
+  "OTHER",
+]);
+
+function asReportCategory(value?: string | null): ReportCategory | null {
+  if (value && VALID_CATEGORIES.has(value)) return value as ReportCategory;
+  return null;
+}
+
 const MAX_DESC = 500;
 
 export function ReportDetailsScreen() {
@@ -69,10 +87,14 @@ export function ReportDetailsScreen() {
     setLatitude(route.params.latitude);
     setLongitude(route.params.longitude);
     setAddress(route.params.address);
+    if (route.params.category) {
+      setCategory(route.params.category as ReportCategory);
+    }
   }, [
     route.params.latitude,
     route.params.longitude,
     route.params.address,
+    route.params.category,
   ]);
 
   useEffect(() => {
@@ -124,20 +146,30 @@ export function ReportDetailsScreen() {
       return;
     }
 
+    const selectedCategory =
+      category ?? asReportCategory(initialCategory);
+
+    if (!selectedCategory) {
+      setError(t("details.needCategory"));
+      return;
+    }
+
     setBusy(true);
     setError(null);
     try {
       const report = await createIssue(token, {
-        description: category
-          ? `[${category}] ${description.trim()}`
-          : description.trim(),
+        description: `[${selectedCategory}] ${description.trim()}`,
         cityId,
         latitude,
         longitude,
         address,
         photoUrls: [photoUri],
+        category: selectedCategory,
       });
-      navigation.replace("ReportSubmitted", { issueId: report.id });
+      navigation.replace("ReportSubmitted", {
+        issueId: report.id,
+        category: selectedCategory,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : t("details.failedSubmit"));
     } finally {

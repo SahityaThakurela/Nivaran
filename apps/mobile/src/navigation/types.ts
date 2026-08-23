@@ -20,7 +20,7 @@ export type RootStackParamList = {
     photoUri: string;
     category?: string;
   };
-  ReportSubmitted: { issueId: string };
+  ReportSubmitted: { issueId: string; category?: string };
   TrackIssue: { issueId: string };
   VerifyResolution: { issueId: string };
 };
