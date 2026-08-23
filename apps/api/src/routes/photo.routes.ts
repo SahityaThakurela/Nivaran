@@ -9,15 +9,19 @@ export const photoRouter = Router();
 
 let cloudinaryDisabled = false;
 
+// Keep files in memory, then stream to Cloudinary (or fall back to Postgres).
+// This avoids multer-storage-cloudinary blocking uploads when Cloudinary is
+// misconfigured, while still accepting the same multipart "photo" field.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype.startsWith("image/")) {
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+    if (allowed.includes(file.mimetype) || file.mimetype.startsWith("image/")) {
       cb(null, true);
       return;
     }
-    cb(new Error("Only image uploads are allowed"));
+    cb(new Error("Only jpg, png, jpeg, and webp uploads are allowed"));
   },
 });
 
@@ -63,7 +67,7 @@ photoRouter.post("/", authenticate, (req, res) => {
     if (isCloudinaryConfigured() && !cloudinaryDisabled) {
       try {
         const result = await uploadBufferToCloudinary(file.buffer, {
-          folder: "nivaran/issues",
+          folder: "nivaran_issues",
         });
 
         return res.status(201).json({

@@ -1,21 +1,24 @@
 import "../bootstrap-env";
 import { v2 as cloudinary } from "cloudinary";
 
-// If CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET are set, use them explicitly.
-// Otherwise the SDK auto-configures from CLOUDINARY_URL (the single-string
-// value Cloudinary's dashboard calls your "API Environment variable").
-if (
-  process.env.CLOUDINARY_CLOUD_NAME &&
-  process.env.CLOUDINARY_API_KEY &&
-  process.env.CLOUDINARY_API_SECRET
-) {
+/**
+ * Prefer the three separate dashboard values. This avoids CLOUDINARY_URL
+ * protocol / cloud_name parsing issues that crash or reject uploads.
+ */
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+const apiKey = process.env.CLOUDINARY_API_KEY?.trim();
+const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim();
+
+if (cloudName && apiKey && apiSecret) {
   cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: cloudName,
+    api_key: apiKey,
+    api_secret: apiSecret,
     secure: true,
   });
 }
+
+export default cloudinary;
 
 export function isCloudinaryConfigured(): boolean {
   const config = cloudinary.config();
@@ -34,7 +37,11 @@ export function uploadBufferToCloudinary(
 ): Promise<CloudinaryUploadResult> {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: options.folder, resource_type: "image" },
+      {
+        folder: options.folder,
+        resource_type: "image",
+        allowed_formats: ["jpg", "png", "jpeg", "webp"],
+      },
       (error, result) => {
         if (error || !result) {
           reject(error ?? new Error("Cloudinary upload returned no result"));
