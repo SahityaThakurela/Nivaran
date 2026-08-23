@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/authenticate";
+import { isCloudinaryConfigured, uploadBufferToCloudinary } from "../lib/cloudinary";
 
 export const photoRouter = Router();
 
@@ -17,17 +18,11 @@ const upload = multer({
   },
 });
 
-function publicApiBase(req: { protocol: string; get: (name: string) => string | undefined }) {
-  const fromEnv = process.env.PUBLIC_API_URL?.replace(/\/$/, "");
-  if (fromEnv) return fromEnv;
-  const host = req.get("host");
-  if (!host) return "";
-  // Render / reverse proxies terminate TLS; prefer x-forwarded-proto when present.
-  const proto = (req.get("x-forwarded-proto") ?? req.protocol ?? "https").split(",")[0]?.trim();
-  return `${proto}://${host}`;
-}
-
-/** Authenticated upload — returns a publicly fetchable HTTPS URL. */
+/**
+ * Authenticated upload — stores the image on Cloudinary and returns its
+ * public HTTPS URL. Requires CLOUDINARY_URL (or CLOUDINARY_CLOUD_NAME +
+ * CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET) in the environment.
+ */
 photoRouter.post("/", authenticate, (req, res) => {
   upload.single("photo")(req, res, async (err: unknown) => {
     if (err) {
@@ -40,32 +35,34 @@ photoRouter.post("/", authenticate, (req, res) => {
       return res.status(400).json({ error: "photo file is required" });
     }
 
-    try {
-      const photo = await prisma.issuePhoto.create({
-        data: {
-          mimeType: file.mimetype || "image/jpeg",
-          data: new Uint8Array(file.buffer),
-          uploadedById: req.user!.sub,
-        },
+    if (!isCloudinaryConfigured()) {
+      return res.status(500).json({
+        error:
+          "Cloudinary is not configured. Set CLOUDINARY_URL (or CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET) in the API environment.",
       });
+    }
 
-      const base = publicApiBase(req);
-      if (!base) {
-        return res.status(500).json({ error: "PUBLIC_API_URL is not configured" });
-      }
+    try {
+      const result = await uploadBufferToCloudinary(file.buffer, {
+        folder: "nivaran/issues",
+      });
 
       return res.status(201).json({
-        url: `${base}/api/issues/photos/${photo.id}`,
-        id: photo.id,
+        url: result.secure_url,
+        id: result.public_id,
       });
     } catch (error) {
-      console.error("Photo upload failed:", error);
-      return res.status(500).json({ error: "Failed to store photo" });
+      console.error("Cloudinary upload failed:", error);
+      return res.status(500).json({ error: "Failed to upload photo" });
     }
   });
 });
 
-/** Public read — RN <Image> cannot attach Authorization headers. */
+/**
+ * Legacy read route — serves photos uploaded before the Cloudinary
+ * migration, which were stored directly in Postgres. New uploads go
+ * straight to Cloudinary and never hit this route.
+ */
 photoRouter.get("/:id", async (req, res) => {
   const id = String(req.params.id);
 

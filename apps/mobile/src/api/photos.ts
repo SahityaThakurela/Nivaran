@@ -8,6 +8,13 @@ type UploadPhotoResponse = {
 /**
  * Uploads a local ImagePicker URI to the API and returns a public HTTPS URL
  * that any client can load (unlike file:// which only works on this device).
+ *
+ * Uses React Native's classic { uri, name, type } FormData part. This only
+ * works when the global `fetch` is React Native's built-in implementation —
+ * Expo SDK 56+ installs `expo/fetch` (WinterCG-compliant) as the global
+ * fetch by default, which rejects this pattern with "Unsupported
+ * FormDataPart implementation". EXPO_PUBLIC_USE_RN_FETCH=1 (set in .env /
+ * eas.json) restores React Native's fetch as the global.
  */
 export async function uploadIssuePhoto(
   token: string,
