@@ -3,8 +3,11 @@ import multer from "multer";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/authenticate";
 import { isCloudinaryConfigured, uploadBufferToCloudinary } from "../lib/cloudinary";
+import { getPublicApiUrl } from "../lib/publicApiUrl";
 
 export const photoRouter = Router();
+
+let cloudinaryDisabled = false;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -18,10 +21,30 @@ const upload = multer({
   },
 });
 
+async function storePhotoInDatabase(
+  file: Express.Multer.File,
+  uploadedById: string,
+  req: Parameters<typeof getPublicApiUrl>[0],
+) {
+  const photo = await prisma.issuePhoto.create({
+    data: {
+      mimeType: file.mimetype,
+      data: new Uint8Array(file.buffer),
+      uploadedById,
+    },
+  });
+
+  const base = getPublicApiUrl(req);
+  return {
+    url: `${base}/api/issues/photos/${photo.id}`,
+    id: photo.id,
+  };
+}
+
 /**
- * Authenticated upload — stores the image on Cloudinary and returns its
- * public HTTPS URL. Requires CLOUDINARY_URL (or CLOUDINARY_CLOUD_NAME +
- * CLOUDINARY_API_KEY + CLOUDINARY_API_SECRET) in the environment.
+ * Authenticated upload — prefers Cloudinary when configured; falls back to
+ * Postgres storage so reports still work when Cloudinary credentials are wrong
+ * or missing (common during hackathon deploys).
  */
 photoRouter.post("/", authenticate, (req, res) => {
   upload.single("photo")(req, res, async (err: unknown) => {
@@ -35,33 +58,36 @@ photoRouter.post("/", authenticate, (req, res) => {
       return res.status(400).json({ error: "photo file is required" });
     }
 
-    if (!isCloudinaryConfigured()) {
-      return res.status(500).json({
-        error:
-          "Cloudinary is not configured. Set CLOUDINARY_URL (or CLOUDINARY_CLOUD_NAME / CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET) in the API environment.",
-      });
+    const userId = req.user!.sub;
+
+    if (isCloudinaryConfigured() && !cloudinaryDisabled) {
+      try {
+        const result = await uploadBufferToCloudinary(file.buffer, {
+          folder: "nivaran/issues",
+        });
+
+        return res.status(201).json({
+          url: result.secure_url,
+          id: result.public_id,
+        });
+      } catch (error) {
+        cloudinaryDisabled = true;
+        console.error("Cloudinary upload failed, using database fallback:", error);
+      }
     }
 
     try {
-      const result = await uploadBufferToCloudinary(file.buffer, {
-        folder: "nivaran/issues",
-      });
-
-      return res.status(201).json({
-        url: result.secure_url,
-        id: result.public_id,
-      });
+      const stored = await storePhotoInDatabase(file, userId, req);
+      return res.status(201).json(stored);
     } catch (error) {
-      console.error("Cloudinary upload failed:", error);
+      console.error("Database photo upload failed:", error);
       return res.status(500).json({ error: "Failed to upload photo" });
     }
   });
 });
 
 /**
- * Legacy read route — serves photos uploaded before the Cloudinary
- * migration, which were stored directly in Postgres. New uploads go
- * straight to Cloudinary and never hit this route.
+ * Serves issue photos stored in Postgres (fallback storage and legacy uploads).
  */
 photoRouter.get("/:id", async (req, res) => {
   const id = String(req.params.id);

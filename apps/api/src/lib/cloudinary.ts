@@ -1,3 +1,4 @@
+import "../bootstrap-env";
 import { v2 as cloudinary } from "cloudinary";
 
 // If CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET are set, use them explicitly.

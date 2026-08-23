@@ -1,4 +1,4 @@
-import { config as loadEnv } from "dotenv";
+import "./bootstrap-env";
 import express from "express";
 import cors from "cors";
 import { prisma } from "./lib/prisma";
@@ -8,8 +8,6 @@ import { photoRouter } from "./routes/photo.routes";
 import { aiRouter } from "./routes/ai.routes";
 import { taskRouter } from "./routes/task.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
-
-loadEnv();
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
