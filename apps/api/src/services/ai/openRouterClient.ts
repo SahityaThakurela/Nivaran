@@ -8,6 +8,7 @@ export async function callOpenRouter(
   prompt: string,
   imageUrls: string[],
   jsonSchema: object,
+  schemaName = "societal_challenge_classification",
 ): Promise<unknown> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -30,10 +31,19 @@ export async function callOpenRouter(
     body: JSON.stringify({
       model: OPENROUTER_MODEL,
       messages: [{ role: "user", content }],
+      // Without an explicit cap, OpenRouter defaults max_tokens to the
+      // model's absolute ceiling (65535 for Gemini 2.5 Flash), which this
+      // account can't afford and fails every call with a 402 — silently,
+      // since every caller here treats a thrown error as "fall back."
+      // Our JSON outputs are a few hundred tokens at most, and thinking
+      // isn't needed for a structured classification/validation task, so
+      // both are capped tight.
+      max_tokens: 1024,
+      reasoning: { max_tokens: 0 },
       response_format: {
         type: "json_schema",
         json_schema: {
-          name: "societal_challenge_classification",
+          name: schemaName,
           strict: true,
           schema: {
             ...jsonSchema,

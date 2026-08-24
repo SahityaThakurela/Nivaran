@@ -6,6 +6,7 @@ import { requireRole, requireScope } from "../middleware/rbac";
 import { enqueueClassification } from "../services/classification";
 import { findDuplicateCandidates } from "../services/duplicateDetection";
 import { recalculatePriorityScore } from "../services/priorityScore";
+import { validateReportSubmission } from "../services/ai/validateReport";
 
 export const issueRouter = Router();
 
@@ -45,6 +46,25 @@ issueRouter.post("/", async (req, res) => {
           (/^https?:\/\//i.test(url) || url.startsWith("data:image/")),
       )
     : [];
+
+  // Vision-LLM check: does the uploaded photo actually support the claimed
+  // description, or is it something unrelated (e.g. a laptop photo attached
+  // to a "damaged road" report)? Runs before we ever write the report, so a
+  // mismatched submission never makes it into the queue at all — it fails
+  // open (accepts) on any AI/network trouble, so outages never block a
+  // genuine citizen report.
+  const validation = await validateReportSubmission(description, sanitizedPhotoUrls);
+  if (!validation.isValid) {
+    return res.status(422).json({
+      error: `Report rejected: ${validation.reason}`,
+      rejection: {
+        reason: validation.reason,
+        imageFindings: validation.imageFindings,
+        mismatchType: validation.mismatchType,
+        confidence: validation.confidence,
+      },
+    });
+  }
 
   const report = await prisma.report.create({
     data: {
