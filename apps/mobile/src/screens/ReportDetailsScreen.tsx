@@ -2,6 +2,8 @@ import { useNavigation, useRoute, type RouteProp } from "@react-navigation/nativ
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -77,7 +79,7 @@ export function ReportDetailsScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { token, user } = useAuth();
-  const { t } = useLanguage();
+  const { t, domainLabel } = useLanguage();
   const { photoUri, domain: initialDomain } = route.params;
 
   const [latitude, setLatitude] = useState(route.params.latitude);
@@ -87,13 +89,58 @@ export function ReportDetailsScreen() {
     (initialDomain as ChallengeDomain | undefined) ?? null,
   );
   const [description, setDescription] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [issueIdReady, setIssueIdReady] = useState<string | null>(null);
+  const [processingDomain, setProcessingDomain] = useState<ChallengeDomain | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [rejection, setRejection] = useState<ReportRejection | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const descriptionOffsetY = useRef(0);
   const descriptionFocused = useRef(false);
+  const cancelRequestedRef = useRef(false);
+
+  const [progressStage, setProgressStage] = useState<0 | 1 | 2>(0);
+  const severityBar = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!processing) return;
+    setProgressStage(0);
+    const t1 = setTimeout(() => setProgressStage(1), 700);
+    const t2 = setTimeout(() => setProgressStage(2), 1600);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [processing]);
+
+  useEffect(() => {
+    if (!processing || progressStage !== 2) return;
+    let cancelled = false;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(severityBar, {
+          toValue: 1,
+          duration: 1050,
+          easing: Easing.inOut(Easing.linear),
+          useNativeDriver: false,
+        }),
+        Animated.timing(severityBar, {
+          toValue: 0.15,
+          duration: 0,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    if (!cancelled) loop.start();
+    return () => {
+      cancelled = true;
+      loop.stop();
+    };
+  }, [processing, progressStage, severityBar]);
 
   useEffect(() => {
     setLatitude(route.params.latitude);
@@ -192,7 +239,11 @@ export function ReportDetailsScreen() {
       return;
     }
 
-    setBusy(true);
+    cancelRequestedRef.current = false;
+    setProcessing(true);
+    setSubmitting(true);
+    setIssueIdReady(null);
+    setProcessingDomain(selectedDomain);
     setError(null);
     setRejection(null);
     try {
@@ -206,11 +257,14 @@ export function ReportDetailsScreen() {
         photoUrls: [photoUrl],
         domain: selectedDomain,
       });
-      navigation.replace("TrackIssue", {
-        issueId: report.id,
-        animateTimeline: true,
-      });
+      if (cancelRequestedRef.current) return;
+      setIssueIdReady(report.id);
     } catch (e) {
+      if (cancelRequestedRef.current) return;
+      setProcessing(false);
+      setSubmitting(false);
+      setIssueIdReady(null);
+      setProcessingDomain(null);
       const rejected = getReportRejection(e);
       if (rejected) {
         setRejection(rejected);
@@ -220,8 +274,25 @@ export function ReportDetailsScreen() {
         setError(e instanceof Error ? e.message : t("details.failedSubmit"));
       }
     } finally {
-      setBusy(false);
+      if (!cancelRequestedRef.current) setSubmitting(false);
     }
+  }
+
+  function cancelProcessing() {
+    cancelRequestedRef.current = true;
+    setProcessing(false);
+    setSubmitting(false);
+    setIssueIdReady(null);
+    setProcessingDomain(null);
+    setError(null);
+    setRejection(null);
+  }
+
+  function continueToTrack() {
+    if (!issueIdReady) return;
+    setProcessing(false);
+    setSubmitting(false);
+    navigation.replace("TrackIssue", { issueId: issueIdReady, animateTimeline: true });
   }
 
   return (
@@ -244,6 +315,84 @@ export function ReportDetailsScreen() {
           automaticallyAdjustKeyboardInsets
           showsVerticalScrollIndicator={false}
         >
+          {/* While submitting, keep showing the underlying page but show the Figma-style processing overlay */}
+          {processing ? (
+            <View style={styles.processingOverlay} pointerEvents="box-none">
+              <View style={styles.processingBento}>
+                <View style={styles.processingTitleRow}>
+                  <View style={styles.processingPulseDot} />
+                  <Text style={styles.processingTitle}>
+                    {submitting ? "Working in the background…" : "Almost done…"}
+                  </Text>
+                </View>
+                <View style={styles.progressList}>
+                  <ProgressRow
+                    state={progressStage > 0 ? "done" : "current"}
+                    title="Detecting issue"
+                    subtitle="Infrastructure damage found"
+                  />
+                  <ProgressRow
+                    state={progressStage > 1 ? "done" : progressStage === 1 ? "current" : "pending"}
+                    title="Identifying category"
+                    subtitle={
+                      processingDomain
+                        ? `Categorized as '${domainLabel(processingDomain)}'`
+                        : "Categorizing…"
+                    }
+                  />
+                  <ProgressRow
+                    state={progressStage === 2 ? "current" : "pending"}
+                    title="Estimating severity..."
+                    subtitle={undefined}
+                    severityBar={
+                      progressStage === 2 ? (
+                        <View style={styles.severityBarTrack}>
+                          <Animated.View
+                            style={[
+                              styles.severityBarFill,
+                              { transform: [{ scaleX: severityBar }] },
+                            ]}
+                          />
+                        </View>
+                      ) : null
+                    }
+                  />
+                  <ProgressRow
+                    state={"pending"}
+                    title="Finding location context"
+                    subtitle={undefined}
+                  />
+                  <ProgressRow
+                    state={"pending"}
+                    title="Checking similar reports"
+                    subtitle={undefined}
+                  />
+                </View>
+                <View style={styles.processingHelpRow}>
+                  <Text style={styles.processingHelp}>
+                    Your photo and details are being validated, and your report is being prepared for the next step.
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.processingFooter}>
+                <Pressable
+                  style={[styles.continueBtn, !issueIdReady && styles.continueBtnDisabled]}
+                  disabled={!issueIdReady}
+                  onPress={continueToTrack}
+                >
+                  <Text style={styles.continueBtnText}>Continue</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.cancelBtn}
+                  onPress={cancelProcessing}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.heroWrap}>
             <Image
               source={{ uri: photoUri }}
@@ -358,13 +507,56 @@ export function ReportDetailsScreen() {
           ) : null}
 
           <AppButton
-            label={busy ? t("details.uploading") : t("details.submit")}
+            label={submitting ? t("details.uploading") : t("details.submit")}
             onPress={() => void handleSubmit()}
             iconRight="send"
-            disabled={busy}
+            disabled={processing || submitting}
           />
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+function ProgressRow({
+  state,
+  title,
+  subtitle,
+  severityBar,
+}: {
+  state: "done" | "current" | "pending";
+  title: string;
+  subtitle?: string | undefined;
+  severityBar?: React.ReactNode;
+}) {
+  const isDone = state === "done";
+  const isCurrent = state === "current";
+  const isPending = state === "pending";
+
+  const dotBg = isDone ? colors.statusResolvedBg : isCurrent ? "#DBE1FF" : "transparent";
+  const dotBorder = isPending ? colors.dragHandle : "transparent";
+  return (
+    <View style={[styles.progressRow, isPending && styles.progressRowPending]}>
+      <View
+        style={[
+          styles.progressDotOuter,
+          { backgroundColor: dotBg, borderColor: dotBorder },
+        ]}
+      >
+        {isDone ? (
+          <Icon name="check" width={12} height={8} color={colors.white} />
+        ) : null}
+        {isCurrent ? (
+          <View style={styles.currentDotInner} />
+        ) : null}
+      </View>
+      <View style={styles.progressRowText}>
+        <Text style={styles.progressTitle}>{title}</Text>
+        {subtitle ? (
+          <Text style={styles.progressSubtitle}>{subtitle}</Text>
+        ) : null}
+        {severityBar ? severityBar : null}
+      </View>
     </View>
   );
 }
@@ -626,5 +818,157 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     color: colors.mustard,
+  },
+
+  processingOverlay: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(249,249,255,0.78)",
+    zIndex: 50,
+    justifyContent: "center",
+  },
+  processingBento: {
+    marginHorizontal: 16,
+    backgroundColor: colors.logoCard,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(195,198,215,0.2)",
+    shadowColor: "#172033",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+  },
+  processingTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  processingPulseDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#7CF994",
+  },
+  processingTitle: {
+    fontFamily: fonts.Inter_600SemiBold,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.brandNavy,
+  },
+  progressList: {
+    gap: 10,
+  },
+  progressRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    paddingVertical: 4,
+  },
+  progressRowPending: {
+    opacity: 0.5,
+  },
+  progressDotOuter: {
+    width: 32,
+    height: 32,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  currentDotInner: {
+    width: 18,
+    height: 12,
+    borderRadius: 999,
+    backgroundColor: colors.brandBlueDeep,
+    opacity: 0.95,
+  },
+  progressRowText: {
+    flex: 1,
+    gap: 3,
+  },
+  progressTitle: {
+    fontFamily: fonts.Inter_600SemiBold,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.brandNavy,
+    letterSpacing: 0.14,
+  },
+  progressSubtitle: {
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 12,
+    lineHeight: 17,
+    color: "#006E2D",
+  },
+  severityBarTrack: {
+    height: 6,
+    width: 96,
+    backgroundColor: "#E1E8FF",
+    borderRadius: 999,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  severityBarFill: {
+    height: "100%",
+    width: "100%",
+    backgroundColor: colors.brandBlueDeep,
+    transform: [{ scaleX: 0.15 }],
+    transformOrigin: "left",
+  },
+  processingHelpRow: {
+    marginTop: 10,
+  },
+  processingHelp: {
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.bodyMuted60,
+  },
+  processingFooter: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 16,
+    paddingHorizontal: 16,
+    gap: 12,
+    alignItems: "center",
+  },
+  continueBtn: {
+    width: "100%",
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.brandBlueDeep,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  continueBtnDisabled: {
+    opacity: 0.45,
+  },
+  continueBtnText: {
+    fontFamily: fonts.Inter_500Medium,
+    fontSize: 18,
+    lineHeight: 24,
+    color: colors.white,
+  },
+  cancelBtn: {
+    width: 140,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: "rgba(195,198,215,0.5)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtnText: {
+    fontFamily: fonts.Inter_500Medium,
+    fontSize: 14,
+    lineHeight: 18,
+    color: colors.bodyMuted,
   },
 });
