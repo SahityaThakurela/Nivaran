@@ -18,6 +18,18 @@ function titleCaseWords(value: string): string {
     .join(" ");
 }
 
+export function formatTimelineStamp(iso?: string): string | undefined {
+  if (!iso) return undefined;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toLocaleString(undefined, {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function formatRelativeTime(iso: string, t?: TranslateFn): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) {

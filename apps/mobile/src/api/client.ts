@@ -10,6 +10,18 @@ type ErrorPayload = {
   error?: unknown;
 };
 
+export class ApiError extends Error {
+  readonly status: number;
+  readonly payload: unknown;
+
+  constructor(message: string, status: number, payload: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 export async function apiClient<T>(
   path: string,
   options: ApiClientOptions = {},
@@ -51,7 +63,7 @@ export async function apiClient<T>(
       typeof errorField === "string" && errorField.length > 0
         ? errorField
         : `Request failed (${response.status})`;
-    throw new Error(message);
+    throw new ApiError(message, response.status, payload);
   }
 
   return payload as T;

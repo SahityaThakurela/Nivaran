@@ -160,7 +160,7 @@ export function ReportSubmittedScreen() {
   }
 
   function goTrack() {
-    navigation.replace("TrackIssue", { issueId });
+    navigation.replace("TrackIssue", { issueId, animateTimeline: true });
   }
 
   return (

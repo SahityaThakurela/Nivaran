@@ -21,6 +21,6 @@ export type RootStackParamList = {
     domain?: string;
   };
   ReportSubmitted: { issueId: string; domain?: string };
-  TrackIssue: { issueId: string };
+  TrackIssue: { issueId: string; animateTimeline?: boolean };
   VerifyResolution: { issueId: string };
 };

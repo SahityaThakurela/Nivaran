@@ -1,5 +1,54 @@
-import { apiClient } from "./client";
+import { apiClient, ApiError } from "./client";
 import type { ChallengeDomain, Report, ReportStatus } from "./types";
+
+export type ReportRejection = {
+  reason: string;
+  imageFindings?: string;
+  mismatchType?: string;
+  confidence?: number;
+};
+
+export function getReportRejection(error: unknown): ReportRejection | null {
+  if (error instanceof ApiError) {
+    const payload = error.payload;
+    if (payload && typeof payload === "object" && "rejection" in payload) {
+      const rejection = (payload as { rejection?: unknown }).rejection;
+      if (rejection && typeof rejection === "object") {
+        const rec = rejection as Record<string, unknown>;
+        const reason =
+          typeof rec.reason === "string" && rec.reason.trim()
+            ? rec.reason.trim()
+            : error.message.replace(/^Report rejected:\s*/i, "").trim();
+        if (reason) {
+          return {
+            reason,
+            imageFindings:
+              typeof rec.imageFindings === "string"
+                ? rec.imageFindings
+                : undefined,
+            mismatchType:
+              typeof rec.mismatchType === "string"
+                ? rec.mismatchType
+                : undefined,
+            confidence:
+              typeof rec.confidence === "number" ? rec.confidence : undefined,
+          };
+        }
+      }
+    }
+    if (/^Report rejected:/i.test(error.message)) {
+      return {
+        reason: error.message.replace(/^Report rejected:\s*/i, "").trim(),
+      };
+    }
+  }
+  if (error instanceof Error && /^Report rejected:/i.test(error.message)) {
+    return {
+      reason: error.message.replace(/^Report rejected:\s*/i, "").trim(),
+    };
+  }
+  return null;
+}
 
 export type CreateIssueInput = {
   description: string;

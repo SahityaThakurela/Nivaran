@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import type { ChallengeDomain } from "../api/types";
-import { createIssue } from "../api/issues";
+import { createIssue, getReportRejection, type ReportRejection } from "../api/issues";
 import { uploadIssuePhoto } from "../api/photos";
 import { DEFAULT_CITY_ID } from "../api/config";
 import { useAuth } from "../auth/AuthContext";
@@ -89,6 +89,7 @@ export function ReportDetailsScreen() {
   const [description, setDescription] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rejection, setRejection] = useState<ReportRejection | null>(null);
 
   const scrollRef = useRef<ScrollView>(null);
   const descriptionOffsetY = useRef(0);
@@ -166,6 +167,7 @@ export function ReportDetailsScreen() {
   async function handleSubmit() {
     if (!token) {
       setError(t("details.signInAgain"));
+      setRejection(null);
       return;
     }
     const cityId = user?.cityId || DEFAULT_CITY_ID;
@@ -192,6 +194,7 @@ export function ReportDetailsScreen() {
 
     setBusy(true);
     setError(null);
+    setRejection(null);
     try {
       const photoUrl = await uploadIssuePhoto(token, photoUri);
       const report = await createIssue(token, {
@@ -203,12 +206,19 @@ export function ReportDetailsScreen() {
         photoUrls: [photoUrl],
         domain: selectedDomain,
       });
-      navigation.replace("ReportSubmitted", {
+      navigation.replace("TrackIssue", {
         issueId: report.id,
-        domain: selectedDomain,
+        animateTimeline: true,
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("details.failedSubmit"));
+      const rejected = getReportRejection(e);
+      if (rejected) {
+        setRejection(rejected);
+        setError(null);
+      } else {
+        setRejection(null);
+        setError(e instanceof Error ? e.message : t("details.failedSubmit"));
+      }
     } finally {
       setBusy(false);
     }
@@ -335,7 +345,17 @@ export function ReportDetailsScreen() {
             </View>
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+          {rejection ? (
+            <RejectionCard
+              rejection={rejection}
+              t={t}
+              onChangePhoto={() => navigation.goBack()}
+            />
+          ) : error ? (
+            <View style={styles.softError}>
+              <Text style={styles.softErrorText}>{error}</Text>
+            </View>
+          ) : null}
 
           <AppButton
             label={busy ? t("details.uploading") : t("details.submit")}
@@ -345,6 +365,54 @@ export function ReportDetailsScreen() {
           />
         </ScrollView>
       </KeyboardAvoidingView>
+    </View>
+  );
+}
+
+const MISMATCH_KEYS: Record<string, TranslationKey> = {
+  IRRELEVANT_SUBJECT: "details.mismatch.IRRELEVANT_SUBJECT",
+  NO_VISIBLE_ISSUE: "details.mismatch.NO_VISIBLE_ISSUE",
+  TEXT_IMAGE_MISMATCH: "details.mismatch.TEXT_IMAGE_MISMATCH",
+  LOW_QUALITY_UNVERIFIABLE: "details.mismatch.LOW_QUALITY_UNVERIFIABLE",
+  INAPPROPRIATE_OR_UNSAFE: "details.mismatch.INAPPROPRIATE_OR_UNSAFE",
+  SPAM_OR_TEST_SUBMISSION: "details.mismatch.SPAM_OR_TEST_SUBMISSION",
+};
+
+function RejectionCard({
+  rejection,
+  t,
+  onChangePhoto,
+}: {
+  rejection: ReportRejection;
+  t: (key: TranslationKey) => string;
+  onChangePhoto: () => void;
+}) {
+  const mismatchKey = rejection.mismatchType
+    ? MISMATCH_KEYS[rejection.mismatchType]
+    : undefined;
+
+  return (
+    <View style={styles.rejectCard}>
+      <View style={styles.rejectIcon}>
+        <Icon name="close_x" width={16} height={16} color="#93000A" />
+      </View>
+      <View style={{ flex: 1, gap: 8 }}>
+        <Text style={styles.rejectTitle}>
+          {mismatchKey ? t(mismatchKey) : t("details.rejectTitle")}
+        </Text>
+        <Text style={styles.rejectReason}>{rejection.reason}</Text>
+        {rejection.imageFindings ? (
+          <View style={styles.findingsBox}>
+            <Text style={styles.findingsLabel}>{t("details.rejectPhotoShows")}</Text>
+            <Text style={styles.findingsText}>{rejection.imageFindings}</Text>
+          </View>
+        ) : null}
+        <Text style={styles.rejectHint}>{t("details.rejectHint")}</Text>
+        <Pressable style={styles.rejectCta} onPress={onChangePhoto}>
+          <Icon name="retake" width={16} height={16} />
+          <Text style={styles.rejectCtaText}>{t("details.rejectChangePhoto")}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -480,9 +548,83 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
   },
-  error: {
+  rejectCard: {
+    backgroundColor: colors.unresolvedBg,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  rejectIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(147, 0, 10, 0.1)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rejectTitle: {
+    fontFamily: fonts.PlusJakartaSans_600SemiBold,
+    fontSize: 16,
+    lineHeight: 22,
+    color: colors.unresolvedText,
+  },
+  rejectReason: {
     fontFamily: fonts.Inter_400Regular,
     fontSize: 14,
-    color: colors.danger,
+    lineHeight: 21,
+    color: colors.brandNavy,
+  },
+  findingsBox: {
+    backgroundColor: "rgba(255, 255, 255, 0.55)",
+    borderRadius: 10,
+    padding: 10,
+    gap: 4,
+  },
+  findingsLabel: {
+    fontFamily: fonts.Inter_600SemiBold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+    color: colors.unresolvedText,
+  },
+  findingsText: {
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.bodyMuted,
+  },
+  rejectHint: {
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.bodyMuted,
+  },
+  rejectCta: {
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: colors.white,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  rejectCtaText: {
+    fontFamily: fonts.Inter_500Medium,
+    fontSize: 14,
+    color: colors.brandNavy,
+  },
+  softError: {
+    backgroundColor: colors.mustardSoft,
+    borderRadius: 12,
+    padding: 14,
+  },
+  softErrorText: {
+    fontFamily: fonts.Inter_400Regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.mustard,
   },
 });
