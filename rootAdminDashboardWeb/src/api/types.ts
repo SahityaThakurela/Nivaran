@@ -65,6 +65,21 @@ export interface IndustryPartner {
   contactEmail: string | null;
 }
 
+export interface Authority {
+  id: string;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  phone: string | null;
+  email: string | null;
+  domains: ChallengeDomain[];
+  isActive: boolean;
+  cityId: string | null;
+  universityId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Report {
   id: string;
   description: string;
@@ -84,6 +99,9 @@ export interface Report {
   facultyMentor: string | null;
   teamNote: string | null;
   industryPartnerId: string | null;
+  assignedAuthorityId: string | null;
+  assignedAuthority?: Authority | null;
+  assignedAt: string | null;
   resolutionEvidenceUrls: string[];
   feedbackRating: number | null;
   feedbackComment: string | null;
@@ -117,6 +135,17 @@ export interface AnalyticsOverview {
   byDomain: Record<ChallengeDomain, number>;
   bySeverity: Record<Severity, number>;
   byUniversity: Array<{ universityId: string; universityName: string; count: number }>;
+}
+
+export interface AuditEvent {
+  id: string;
+  reportId: string;
+  status: ReportStatus;
+  note: string | null;
+  changedById: string;
+  changedBy?: SafeUser;
+  report?: { id: string; description: string; domain: ChallengeDomain | null; status: ReportStatus };
+  createdAt: string;
 }
 
 export interface DuplicateCandidate {

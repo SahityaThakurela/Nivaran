@@ -17,6 +17,13 @@ enum UserRole {
   UNIVERSITY_ADMIN
   GOVERNMENT_ADMIN
   SUPER_ADMIN
+  // Legacy values from an earlier pass, superseded by GOVERNMENT_ADMIN /
+  // the new Authority model. Kept in the enum (not used by any route) only
+  // because a handful of existing User rows still reference them — dropping
+  // the values here would fail `prisma db push` against that live data.
+  MUNICIPAL_ADMIN
+  DEPARTMENT_OPERATOR
+  FIELD_WORKER
 }
 
 // Thematic domains from the Societal Innovation Collaboration Portal PS
@@ -73,6 +80,7 @@ model City {
   users        User[]
   universities University[]
   reports      Report[]
+  authorities  Authority[]
 
   @@unique([name, state])
 }
@@ -89,10 +97,43 @@ model University {
   cityId          String
   city            City              @relation(fields: [cityId], references: [id])
 
-  users   User[]
-  reports Report[]
+  users       User[]
+  reports     Report[]
+  authorities Authority[]
 
   @@index([cityId])
+}
+
+// A specific person/official a report gets assigned to for action — a PWD
+// junior engineer, a municipal sanitation officer, a university's nodal
+// faculty coordinator, etc. Distinct from IndustryPartner (external org
+// directory) and the free-text facultyMentor field. Scoped exactly like a
+// staff User: set universityId for institution-side authorities, cityId for
+// government/district-side ones. Managed from the dashboard's "Authorities"
+// tab and picked in the Action Center's "Assign Authority" control; the
+// assignment is what the mobile app reads via Report.assignedAuthority.
+model Authority {
+  id          String            @id @default(cuid())
+  name        String
+  designation String?
+  department  String?
+  phone       String?
+  email       String?
+  domains     ChallengeDomain[]
+  isActive    Boolean           @default(true)
+
+  cityId       String?
+  city         City?       @relation(fields: [cityId], references: [id])
+  universityId String?
+  university   University? @relation(fields: [universityId], references: [id])
+
+  reports Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cityId])
+  @@index([universityId])
 }
 
 // Lightweight directory of industries, startups, MSMEs, CSR orgs, and
@@ -173,6 +214,13 @@ model Report {
   // Optional industry/startup/CSR partner looped in by the university admin.
   industryPartnerId String?
   industryPartner   IndustryPartner? @relation(fields: [industryPartnerId], references: [id])
+
+  // The specific official/staff member responsible for acting on this
+  // report — set from the dashboard's "Assign Authority" control. Surfaced
+  // to the citizen on the mobile app's tracking screen.
+  assignedAuthorityId String?
+  assignedAuthority   Authority? @relation(fields: [assignedAuthorityId], references: [id])
+  assignedAt          DateTime?
 
   // Proof of solution delivery / resolution, kept separate from the
   // citizen's original submission photos.

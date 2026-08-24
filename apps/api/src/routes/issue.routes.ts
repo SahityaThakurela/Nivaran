@@ -126,6 +126,9 @@ issueRouter.get("/", requireScope(), async (req, res) => {
       ...(statusFilter ? { status: statusFilter as ReportStatus } : {}),
       ...(domainFilter ? { domain: domainFilter as ChallengeDomain } : {}),
     },
+    include: {
+      assignedAuthority: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -135,6 +138,13 @@ issueRouter.get("/", requireScope(), async (req, res) => {
 issueRouter.get("/:id", requireScope(), async (req, res) => {
   const report = await prisma.report.findFirst({
     where: { id: String(req.params.id), ...req.scope },
+    include: {
+      assignedAuthority: true,
+      statusEvents: {
+        include: { changedBy: { select: { id: true, name: true, role: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
   });
 
   if (!report) {
@@ -186,12 +196,29 @@ issueRouter.patch("/:id", requireRole(...STAFF_ROLES), requireScope(), async (re
     facultyMentor,
     teamNote,
     industryPartnerId,
+    assignedAuthorityId,
     note,
     duplicateOfId,
   } = req.body ?? {};
 
   if (status !== undefined && !Object.values(ReportStatus).includes(status)) {
     return res.status(400).json({ error: "Invalid status" });
+  }
+
+  // Assigning an authority is scoped exactly like the report itself — a
+  // university admin can only hand a report to one of their own university's
+  // authorities, a government admin only to one of their district's. This is
+  // the action the mobile app's tracking screen reflects back to the citizen.
+  let assignedAuthority: { id: string; name: string; designation: string | null } | null = null;
+  if (assignedAuthorityId !== undefined && assignedAuthorityId !== null) {
+    const authority = await prisma.authority.findFirst({
+      where: { id: assignedAuthorityId, ...req.scope },
+      select: { id: true, name: true, designation: true },
+    });
+    if (!authority) {
+      return res.status(400).json({ error: "assignedAuthorityId does not refer to an authority in your scope" });
+    }
+    assignedAuthority = authority;
   }
 
   // Linking a duplicate is how staff act on GET /:id/duplicates — nothing
@@ -207,15 +234,21 @@ issueRouter.patch("/:id", requireRole(...STAFF_ROLES), requireScope(), async (re
   }
 
   // If duplicateOfId is being set and no explicit status was given, default
-  // the status to DUPLICATE too — that's what linking one is for.
+  // the status to DUPLICATE too — that's what linking one is for. Likewise,
+  // freshly assigning an authority to a still-unrouted report bumps it to
+  // ASSIGNED (but never regresses a report that's already further along,
+  // e.g. IN_PROGRESS, just because the authority got reassigned).
   const statusToApply =
     status !== undefined
       ? status
       : duplicateOfId !== undefined && duplicateOfId !== null
         ? ReportStatus.DUPLICATE
-        : undefined;
+        : assignedAuthority !== null &&
+            (existing.status === ReportStatus.SUBMITTED || existing.status === ReportStatus.ACKNOWLEDGED)
+          ? ReportStatus.ASSIGNED
+          : undefined;
 
-  const report = await prisma.report.update({
+  const updated = await prisma.report.update({
     where: { id: existing.id },
     data: {
       ...(statusToApply !== undefined ? { status: statusToApply } : {}),
@@ -223,20 +256,45 @@ issueRouter.patch("/:id", requireRole(...STAFF_ROLES), requireScope(), async (re
       ...(facultyMentor !== undefined ? { facultyMentor } : {}),
       ...(teamNote !== undefined ? { teamNote } : {}),
       ...(industryPartnerId !== undefined ? { industryPartnerId } : {}),
+      ...(assignedAuthorityId !== undefined
+        ? {
+            assignedAuthorityId: assignedAuthority?.id ?? null,
+            assignedAt: assignedAuthority ? new Date() : null,
+          }
+        : {}),
       ...(duplicateOfId !== undefined
         ? { duplicateOfId, isDuplicate: duplicateOfId !== null }
         : {}),
     },
   });
 
+  const assignmentNote = assignedAuthority
+    ? `Assigned to ${assignedAuthority.name}${assignedAuthority.designation ? ` (${assignedAuthority.designation})` : ""}`
+    : assignedAuthorityId === null
+      ? "Unassigned"
+      : undefined;
+  const combinedNote = [note, assignmentNote].filter(Boolean).join(" — ") || undefined;
+
   // Every status change gets its own audit row instead of overwriting —
   // this is what powers the citizen's tracking timeline later.
   if (statusToApply !== undefined && statusToApply !== existing.status) {
     await prisma.reportStatusEvent.create({
       data: {
-        reportId: report.id,
+        reportId: updated.id,
         status: statusToApply,
-        note: note ?? null,
+        note: combinedNote ?? null,
+        changedById: req.user!.sub,
+      },
+    });
+  } else if (assignmentNote !== undefined) {
+    // Assignment gets logged even when it doesn't change the status (e.g.
+    // reassigning an already-IN_PROGRESS report to a different officer), so
+    // the timeline always shows who's responsible and when.
+    await prisma.reportStatusEvent.create({
+      data: {
+        reportId: updated.id,
+        status: updated.status,
+        note: combinedNote ?? null,
         changedById: req.user!.sub,
       },
     });
@@ -248,6 +306,19 @@ issueRouter.patch("/:id", requireRole(...STAFF_ROLES), requireScope(), async (re
   if (duplicateOfId !== undefined && duplicateOfId !== null) {
     await recalculatePriorityScore(duplicateOfId);
   }
+
+  // Re-fetch with full includes so the response reflects the status/
+  // assignment events just written above, not a stale pre-write snapshot.
+  const report = await prisma.report.findUnique({
+    where: { id: updated.id },
+    include: {
+      assignedAuthority: true,
+      statusEvents: {
+        include: { changedBy: { select: { id: true, name: true, role: true } } },
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
 
   res.json({ report });
 });

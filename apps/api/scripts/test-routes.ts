@@ -156,7 +156,7 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
 
   try {
     const reg = await request("POST", "/api/auth/register", {
-      body: { name: "Citizen", email: citizenEmail, password, role: "CITIZEN" },
+      body: { name: "Citizen", email: citizenEmail, password, role: "CITIZEN", cityId },
       expect: 201,
     });
     citizenToken = String((reg.json as { token: string }).token);
@@ -298,6 +298,195 @@ URIs, ensure DATABASE_URL ends with ?pgbouncer=true, restart pnpm dev, re-run.
     } catch (error) {
       fail("PATCH /api/issues/:id", 0, error instanceof Error ? error.message : String(error));
     }
+  }
+
+  // --- Cities, Authorities, Staff & Audit ---
+  console.log("\n== Cities, Authorities, Staff & Audit ==");
+  let authorityId = "";
+
+  try {
+    const cities = await request("GET", "/api/cities", { token: citizenToken, expect: 200 });
+    const n = Array.isArray((cities.json as { cities?: unknown[] }).cities)
+      ? (cities.json as { cities: unknown[] }).cities.length
+      : 0;
+    pass("GET /api/cities", cities.status, `${n} cit(y/ies)`);
+  } catch (error) {
+    fail("GET /api/cities", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const created = await request("POST", "/api/authorities", {
+      token: adminToken,
+      body: {
+        name: `Test Officer ${suffix}`,
+        designation: "Junior Engineer",
+        department: "Public Works",
+        phone: "9999999999",
+        email: `officer_${suffix}@test.local`,
+        domains: ["URBAN_DEVELOPMENT"],
+        cityId,
+      },
+      expect: 201,
+    });
+    authorityId = String((created.json as { authority: { id: string } }).authority.id);
+    pass("POST /api/authorities", created.status, `authority=${authorityId}`);
+  } catch (error) {
+    fail("POST /api/authorities", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const citizenBlocked = await request("POST", "/api/authorities", {
+      token: citizenToken,
+      body: { name: "Nope", cityId },
+      expect: 403,
+    });
+    pass("POST /api/authorities (citizen)", citizenBlocked.status, "403 as expected");
+  } catch (error) {
+    fail("POST /api/authorities (citizen)", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const list = await request("GET", "/api/authorities", { token: adminToken, expect: 200 });
+    const n = Array.isArray((list.json as { authorities?: unknown[] }).authorities)
+      ? (list.json as { authorities: unknown[] }).authorities.length
+      : 0;
+    pass("GET /api/authorities", list.status, `${n} authorit(y/ies)`);
+  } catch (error) {
+    fail("GET /api/authorities", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  if (authorityId) {
+    try {
+      const patched = await request("PATCH", `/api/authorities/${authorityId}`, {
+        token: adminToken,
+        body: { department: "Roads & Bridges" },
+        expect: 200,
+      });
+      const department = (patched.json as { authority: { department?: string } }).authority.department;
+      pass("PATCH /api/authorities/:id", patched.status, `department=${department}`);
+    } catch (error) {
+      fail("PATCH /api/authorities/:id", 0, error instanceof Error ? error.message : String(error));
+    }
+  }
+
+  if (reportId && authorityId) {
+    try {
+      const assigned = await request("PATCH", `/api/issues/${reportId}`, {
+        token: adminToken,
+        body: { assignedAuthorityId: authorityId },
+        expect: 200,
+      });
+      const report = (assigned.json as {
+        report: { status: string; assignedAuthority?: { id: string; name: string } | null };
+      }).report;
+      const ok = report.assignedAuthority?.id === authorityId;
+      if (ok) {
+        pass(
+          "PATCH /api/issues/:id (assign authority)",
+          assigned.status,
+          `status=${report.status} assignedAuthority=${report.assignedAuthority?.name}`,
+        );
+      } else {
+        fail(
+          "PATCH /api/issues/:id (assign authority)",
+          assigned.status,
+          `assignedAuthority not reflected: ${JSON.stringify(report)}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "PATCH /api/issues/:id (assign authority)",
+        0,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+
+    try {
+      const fetched = await request("GET", `/api/issues/${reportId}`, {
+        token: citizenToken,
+        expect: 200,
+      });
+      const report = (fetched.json as {
+        report: { assignedAuthority?: { id: string } | null; statusEvents?: unknown[] };
+      }).report;
+      const events = Array.isArray(report.statusEvents) ? report.statusEvents.length : 0;
+      const ok = report.assignedAuthority?.id === authorityId && events > 0;
+      if (ok) {
+        pass("GET /api/issues/:id (assignment reflected)", fetched.status, `statusEvents=${events}`);
+      } else {
+        fail(
+          "GET /api/issues/:id (assignment reflected)",
+          fetched.status,
+          `assignedAuthority/statusEvents missing: ${JSON.stringify(report)}`,
+        );
+      }
+    } catch (error) {
+      fail(
+        "GET /api/issues/:id (assignment reflected)",
+        0,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+  }
+
+  let staffEmail = "";
+  try {
+    staffEmail = `staff_${suffix}@test.local`;
+    const staff = await request("POST", "/api/auth/staff", {
+      token: adminToken,
+      body: {
+        name: "Test Government Admin",
+        email: staffEmail,
+        password,
+        role: "GOVERNMENT_ADMIN",
+        cityId,
+      },
+      expect: 201,
+    });
+    pass("POST /api/auth/staff", staff.status, `email=${staffEmail}`);
+  } catch (error) {
+    fail("POST /api/auth/staff", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const citizenBlocked = await request("POST", "/api/auth/staff", {
+      token: citizenToken,
+      body: { name: "Nope", email: `blocked_${suffix}@test.local`, password, role: "GOVERNMENT_ADMIN", cityId },
+      expect: 403,
+    });
+    pass("POST /api/auth/staff (citizen)", citizenBlocked.status, "403 as expected");
+  } catch (error) {
+    fail("POST /api/auth/staff (citizen)", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const users = await request("GET", "/api/auth/users", { token: adminToken, expect: 200 });
+    const list = (users.json as { users?: { email: string }[] }).users ?? [];
+    const found = staffEmail ? list.some((u) => u.email === staffEmail) : true;
+    if (found) {
+      pass("GET /api/auth/users", users.status, `${list.length} staff user(s)`);
+    } else {
+      fail("GET /api/auth/users", users.status, `new staff account not found among ${list.length}`);
+    }
+  } catch (error) {
+    fail("GET /api/auth/users", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const audit = await request("GET", "/api/audit", { token: adminToken, expect: 200 });
+    const n = Array.isArray((audit.json as { events?: unknown[] }).events)
+      ? (audit.json as { events: unknown[] }).events.length
+      : 0;
+    pass("GET /api/audit", audit.status, `${n} event(s)`);
+  } catch (error) {
+    fail("GET /api/audit", 0, error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const citizenBlocked = await request("GET", "/api/audit", { token: citizenToken, expect: 403 });
+    pass("GET /api/audit (citizen)", citizenBlocked.status, "403 as expected");
+  } catch (error) {
+    fail("GET /api/audit (citizen)", 0, error instanceof Error ? error.message : String(error));
   }
 
   // --- Universities & Industry Partners ---

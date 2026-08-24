@@ -46,18 +46,26 @@ export function requireScope() {
         break;
       case UserRole.GOVERNMENT_ADMIN:
         // District-level oversight/analytics — replaces MUNICIPAL_ADMIN.
+        if (!user.cityId) {
+          return res.status(400).json({ error: "Your account has no district assigned" });
+        }
         req.scope = { cityId: user.cityId };
         break;
       case UserRole.UNIVERSITY_ADMIN:
         // Sees only challenges routed to their own institution.
+        if (!user.universityId) {
+          return res.status(400).json({ error: "Your account has no university assigned" });
+        }
         req.scope = { universityId: user.universityId };
         break;
       case UserRole.CITIZEN:
         // Citizens see every challenge filed in their own district (Nearby/Home
         // feeds are meant to be community-wide, not just "my reports").
         // GET /api/issues?mine=true narrows this back to reportedById for
-        // the "My Reports" screen.
-        req.scope = { cityId: user.cityId };
+        // the "My Reports" screen. cityId is a required column on Report, so a
+        // literal `null` filter (citizen with no city yet) isn't a valid
+        // Prisma filter — fall back to an impossible match instead of a 500.
+        req.scope = user.cityId ? { cityId: user.cityId } : { id: "__no_city__" };
         break;
       default:
         return res.status(403).json({ error: "Unknown role" });

@@ -164,9 +164,9 @@ function buildTimeline(
       key: "assigned",
       label: t("track.stepAssigned"),
       at: assigned ? updated : undefined,
-      description: assigned
-        ? t("track.descAssigned", { category })
-        : routing
+      description: report.assignedAuthority
+        ? t("track.descAssignedAuthority", { name: report.assignedAuthority.name })
+        : assigned || routing
           ? t("track.descAssigned", { category })
           : t("track.waitRouting"),
       state: assignedState,
@@ -467,16 +467,27 @@ export function TrackIssueScreen() {
 
           <View style={styles.teamCard}>
             <View style={styles.teamAvatar}>
-              <Icon name="profile" width={18} height={18} color={colors.white} />
+              <Icon
+                name={report.assignedAuthority ? "hardhat" : "profile"}
+                width={18}
+                height={18}
+                color={colors.white}
+              />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.teamTitle}>
-                {report.domain
-                  ? t("track.teamDept", { category: domainLabel(report.domain) })
-                  : t("track.teamPending")}
+                {report.assignedAuthority
+                  ? report.assignedAuthority.name
+                  : report.domain
+                    ? t("track.teamDept", { category: domainLabel(report.domain) })
+                    : t("track.teamPending")}
               </Text>
               <Text style={styles.teamSub}>
-                {report.facultyMentor?.trim() || t("track.teamField")}
+                {report.assignedAuthority
+                  ? [report.assignedAuthority.designation, report.assignedAuthority.department]
+                      .filter(Boolean)
+                      .join(", ") || t("track.teamField")
+                  : report.facultyMentor?.trim() || t("track.teamField")}
               </Text>
               <View style={styles.teamStatusRow}>
                 <View
@@ -493,6 +504,14 @@ export function TrackIssueScreen() {
                 </Text>
               </View>
             </View>
+            {report.assignedAuthority?.phone ? (
+              <Pressable
+                style={styles.teamCallBtn}
+                onPress={() => Linking.openURL(`tel:${report.assignedAuthority!.phone}`)}
+              >
+                <Icon name="phone" width={16} height={13} color={colors.white} />
+              </Pressable>
+            ) : null}
           </View>
 
           <View style={styles.mapCard}>
@@ -816,6 +835,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     lineHeight: 16,
     color: "#757684",
+  },
+  teamCallBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.brandBlueDeep,
+    alignItems: "center",
+    justifyContent: "center",
   },
   mapCard: {
     backgroundColor: CARD,

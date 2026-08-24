@@ -11,6 +11,7 @@ import {
   Settings,
   ChevronRight,
   Shield,
+  UserCog,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -51,6 +52,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: <Users size={18} />,
     label: 'Staff Accounts',
     roles: ['GOVERNMENT_ADMIN', 'SUPER_ADMIN'],
+  },
+  {
+    to: '/authorities',
+    icon: <UserCog size={18} />,
+    label: 'Authorities',
+    roles: ['GOVERNMENT_ADMIN', 'SUPER_ADMIN', 'UNIVERSITY_ADMIN'],
   },
   {
     to: '/universities',

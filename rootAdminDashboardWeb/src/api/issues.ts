@@ -41,6 +41,7 @@ export function updateIssue(
     facultyMentor?: string | null;
     teamNote?: string | null;
     industryPartnerId?: string | null;
+    assignedAuthorityId?: string | null;
     note?: string;
     duplicateOfId?: string | null;
   }

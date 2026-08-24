@@ -9,6 +9,9 @@ import { aiRouter } from "./routes/ai.routes";
 import { analyticsRouter } from "./routes/analytics.routes";
 import { universityRouter } from "./routes/university.routes";
 import { industryPartnerRouter } from "./routes/industryPartner.routes";
+import { authorityRouter } from "./routes/authority.routes";
+import { auditRouter } from "./routes/audit.routes";
+import { cityRouter } from "./routes/city.routes";
 
 const app = express();
 const PORT = process.env.PORT ?? 4000;
@@ -43,6 +46,9 @@ app.use("/api/ai", aiRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/universities", universityRouter);
 app.use("/api/industry-partners", industryPartnerRouter);
+app.use("/api/authorities", authorityRouter);
+app.use("/api/audit", auditRouter);
+app.use("/api/cities", cityRouter);
 
 // Express 5 forwards rejected promises from async route handlers here
 // automatically, so this catches anything a route didn't handle itself

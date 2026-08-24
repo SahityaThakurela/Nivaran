@@ -4,11 +4,13 @@ import {
   ArrowLeft, MapPin, Clock, Users, Share2, Loader2,
   AlertTriangle, CheckCircle2, RefreshCw, ChevronRight,
   FileImage, Zap, Building2, GraduationCap, Handshake,
+  UserCog, Phone, Mail, ShieldCheck,
 } from 'lucide-react';
 import { getIssue, getDuplicates, updateIssue, triggerAiAnalysis } from '../api/issues';
 import { getUniversities } from '../api/universities';
 import { getIndustryPartners } from '../api/industryPartners';
-import type { Report, DuplicateCandidate, ReportStatus, University, IndustryPartner } from '../api/types';
+import { getAuthorities } from '../api/authorities';
+import type { Report, DuplicateCandidate, ReportStatus, University, IndustryPartner, Authority } from '../api/types';
 import { StatusPill } from '../components/StatusPill';
 import { PriorityBadge } from '../components/PriorityBadge';
 import { SkeletonBlock } from '../components/SkeletonLoader';
@@ -39,8 +41,10 @@ export default function IssueDetail() {
   const [duplicates, setDuplicates] = useState<DuplicateCandidate[]>([]);
   const [universities, setUniversities] = useState<University[]>([]);
   const [partners, setPartners] = useState<IndustryPartner[]>([]);
+  const [authorities, setAuthorities] = useState<Authority[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState('');
@@ -53,6 +57,7 @@ export default function IssueDetail() {
   const [facultyMentor, setFacultyMentor] = useState('');
   const [teamNote, setTeamNote] = useState('');
   const [industryPartnerId, setIndustryPartnerId] = useState('');
+  const [selectedAuthorityId, setSelectedAuthorityId] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -62,16 +67,19 @@ export default function IssueDetail() {
       getDuplicates(id).catch(() => ({ candidates: [] })),
       getUniversities().catch(() => ({ universities: [] as University[] })),
       getIndustryPartners().catch(() => ({ partners: [] as IndustryPartner[] })),
+      getAuthorities().catch(() => ({ authorities: [] as Authority[] })),
     ])
-      .then(([r, d, uni, p]) => {
+      .then(([r, d, uni, p, auth]) => {
         setReport(r.report);
         setSelectedStatus(r.report.status);
         setFacultyMentor(r.report.facultyMentor ?? '');
         setTeamNote(r.report.teamNote ?? '');
         setIndustryPartnerId(r.report.industryPartnerId ?? '');
+        setSelectedAuthorityId(r.report.assignedAuthorityId ?? '');
         setDuplicates(d.candidates);
         setUniversities(uni.universities);
         setPartners(p.partners);
+        setAuthorities(auth.authorities);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -108,6 +116,22 @@ export default function IssueDetail() {
       setError(e instanceof Error ? e.message : 'Team update failed');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleAssignAuthority() {
+    if (!id) return;
+    setAssigning(true);
+    try {
+      const res = await updateIssue(id, {
+        assignedAuthorityId: selectedAuthorityId || null,
+      });
+      setReport(res.report);
+      setSelectedStatus(res.report.status);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Assignment failed');
+    } finally {
+      setAssigning(false);
     }
   }
 
@@ -459,6 +483,82 @@ export default function IssueDetail() {
               {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
               {saving ? 'Updating…' : 'Apply Changes'}
             </button>
+          </div>
+
+          {/* Assign Authority — the specific official responsible for action,
+              surfaced back to the citizen on the mobile app's tracking screen. */}
+          <div className="bg-white rounded-xl border border-gray-100 shadow-card p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <UserCog size={15} className="text-gray-400" />
+              Assign Authority
+            </h3>
+
+            {report.assignedAuthority ? (
+              <div className="mb-4 bg-teal-50 border border-teal-100 rounded-xl p-3.5">
+                <div className="flex items-start gap-3">
+                  <div className="h-9 w-9 rounded-full bg-teal-600 flex items-center justify-center text-white shrink-0">
+                    <ShieldCheck size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{report.assignedAuthority.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {[report.assignedAuthority.designation, report.assignedAuthority.department].filter(Boolean).join(', ') || 'Authority'}
+                    </p>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      {report.assignedAuthority.phone && (
+                        <span className="flex items-center gap-1 text-[11px] text-gray-500">
+                          <Phone size={10} /> {report.assignedAuthority.phone}
+                        </span>
+                      )}
+                      {report.assignedAuthority.email && (
+                        <span className="flex items-center gap-1 text-[11px] text-gray-500 truncate">
+                          <Mail size={10} /> {report.assignedAuthority.email}
+                        </span>
+                      )}
+                    </div>
+                    {report.assignedAt && (
+                      <p className="text-[10px] text-teal-700 mt-1.5">
+                        Assigned {new Date(report.assignedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
+                Not yet assigned to an authority — this challenge won't show a responsible official on the citizen's app.
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-gray-500 block mb-1.5">
+                  {authorities.length === 0 ? 'No authorities available in your scope' : 'Select Authority'}
+                </label>
+                <select
+                  id="authority-select"
+                  value={selectedAuthorityId}
+                  onChange={(e) => setSelectedAuthorityId(e.target.value)}
+                  disabled={authorities.length === 0}
+                  className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-400 bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                >
+                  <option value="">Unassigned</option>
+                  {authorities.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}{a.designation ? ` — ${a.designation}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button
+                onClick={handleAssignAuthority}
+                disabled={assigning || selectedAuthorityId === (report.assignedAuthorityId ?? '')}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-white bg-teal-700 py-2.5 rounded-lg hover:bg-teal-800 transition-colors disabled:opacity-50"
+              >
+                {assigning ? <Loader2 size={14} className="animate-spin" /> : <UserCog size={14} />}
+                {selectedAuthorityId ? 'Assign to Authority' : 'Unassign'}
+              </button>
+            </div>
           </div>
 
           {/* Team Formation & Industry Partner */}

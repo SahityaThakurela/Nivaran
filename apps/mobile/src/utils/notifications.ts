@@ -82,15 +82,20 @@ export function buildNotificationItems(
     if (
       report.status === "ASSIGNED" ||
       report.status === "IN_PROGRESS" ||
-      report.status === "RESOLVED"
+      report.status === "RESOLVED" ||
+      report.assignedAuthority
     ) {
       items.push({
         id: `${report.id}:assigned`,
         issueId: report.id,
         kind: "assigned",
-        title: t("notif.assignedTitle"),
-        body: t("notif.assignedBody", { label }),
-        at: report.updatedAt,
+        title: report.assignedAuthority
+          ? t("notif.authorityAssignedTitle")
+          : t("notif.assignedTitle"),
+        body: report.assignedAuthority
+          ? t("notif.authorityAssignedBody", { name: report.assignedAuthority.name, label })
+          : t("notif.assignedBody", { label }),
+        at: report.assignedAt ?? report.updatedAt,
         unread: !read.has(`${report.id}:assigned`),
         icon: "hardhat",
       });

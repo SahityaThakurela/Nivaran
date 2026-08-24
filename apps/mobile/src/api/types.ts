@@ -32,6 +32,15 @@ export type ChallengeDomain =
 
 export type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
+export type Authority = {
+  id: string;
+  name: string;
+  designation: string | null;
+  department: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
 export type Report = {
   id: string;
   description: string;
@@ -56,6 +65,9 @@ export type Report = {
   facultyMentor?: string | null;
   teamNote?: string | null;
   industryPartnerId?: string | null;
+  assignedAuthorityId?: string | null;
+  assignedAuthority?: Authority | null;
+  assignedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -58,6 +58,7 @@ function AppRoutes() {
           <Route path="/map" element={<MapView />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/teams" element={<AdminManagement />} />
+          <Route path="/authorities" element={<AdminManagement />} />
           <Route path="/universities" element={<AdminManagement />} />
           <Route path="/industry-partners" element={<AdminManagement />} />
           <Route path="/notifications" element={<Notifications />} />
