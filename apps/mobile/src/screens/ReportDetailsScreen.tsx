@@ -142,6 +142,22 @@ export function ReportDetailsScreen() {
     };
   }, [processing, progressStage, severityBar]);
 
+  // Once the backend has actually created the report (201 response), move
+  // forward automatically. This prevents "Estimating severity..." from
+  // feeling stuck to the user.
+  useEffect(() => {
+    if (!processing) return;
+    if (!issueIdReady) return;
+    if (submitting) return; // wait until photo+createIssue are done
+
+    const t = setTimeout(() => {
+      if (cancelRequestedRef.current) return;
+      continueToTrack();
+    }, 850);
+
+    return () => clearTimeout(t);
+  }, [processing, issueIdReady, submitting]);
+
   useEffect(() => {
     setLatitude(route.params.latitude);
     setLongitude(route.params.longitude);
