@@ -1,7 +1,7 @@
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as Location from "expo-location";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -14,6 +14,10 @@ import { AppButton } from "../components/FormControls";
 import { Icon } from "../components/Icon";
 import { OsmMapPicker, type OsmMapPickerHandle } from "../components/OsmMapPicker";
 import { useLanguage } from "../i18n/LanguageContext";
+import {
+  fetchDeviceLocation,
+  hasValidCoords,
+} from "../location/deviceLocation";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -51,15 +55,19 @@ export function AdjustMapScreen() {
   const { latitude: initialLat, longitude: initialLng, photoUri, domain } =
     route.params;
 
+  const hasInitial = hasValidCoords(initialLat, initialLng);
   const [pin, setPin] = useState({
-    latitude: initialLat || 28.5355,
-    longitude: initialLng || 77.391,
+    latitude: hasInitial ? initialLat : 28.5355,
+    longitude: hasInitial ? initialLng : 77.391,
   });
-  const [address, setAddress] = useState(() => t("map.movePin"));
+  const [address, setAddress] = useState(() =>
+    hasInitial ? t("map.movePin") : t("capture.locating"),
+  );
   const [busy, setBusy] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const geocodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mapRef = useRef<OsmMapPickerHandle>(null);
+  const didAutoLocate = useRef(false);
 
   const scheduleGeocode = useCallback((latitude: number, longitude: number) => {
     if (geocodeTimer.current) clearTimeout(geocodeTimer.current);
@@ -72,31 +80,46 @@ export function AdjustMapScreen() {
     }, 350);
   }, []);
 
-  function movePin(latitude: number, longitude: number) {
-    setPin({ latitude, longitude });
-    scheduleGeocode(latitude, longitude);
-  }
+  const movePin = useCallback(
+    (latitude: number, longitude: number) => {
+      setPin({ latitude, longitude });
+      scheduleGeocode(latitude, longitude);
+    },
+    [scheduleGeocode],
+  );
 
-  async function onUseMyLocation() {
+  const onUseMyLocation = useCallback(async () => {
     setBusy(true);
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-      const pos = await Location.getCurrentPositionAsync({
+      const loc = await fetchDeviceLocation({
         accuracy: Location.Accuracy.High,
+        withAddress: true,
       });
-      movePin(pos.coords.latitude, pos.coords.longitude);
-      mapRef.current?.moveTo(pos.coords.latitude, pos.coords.longitude);
+      movePin(loc.latitude, loc.longitude);
+      mapRef.current?.moveTo(loc.latitude, loc.longitude);
+      if (loc.address) setAddress(loc.address);
+    } catch {
+      // Keep current pin; user can still drag manually.
     } finally {
       setBusy(false);
     }
-  }
+  }, [movePin]);
+
+  useEffect(() => {
+    if (hasInitial) {
+      scheduleGeocode(initialLat, initialLng);
+      return;
+    }
+    if (didAutoLocate.current) return;
+    didAutoLocate.current = true;
+    void onUseMyLocation();
+  }, [hasInitial, initialLat, initialLng, onUseMyLocation, scheduleGeocode]);
 
   async function onConfirm() {
     setBusy(true);
     try {
       const label =
-        address === t("map.movePin")
+        address === t("map.movePin") || address === t("capture.locating")
           ? await labelForCoords(pin.latitude, pin.longitude)
           : address;
       navigation.navigate({
@@ -141,7 +164,7 @@ export function AdjustMapScreen() {
       <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Text style={styles.sheetLabel}>{t("map.selected")}</Text>
         <View style={styles.addressRow}>
-          {geocoding ? (
+          {geocoding || busy ? (
             <ActivityIndicator color={colors.brandBlueDeep} size="small" />
           ) : (
             <Icon name="pin" width={12} height={15} color={colors.brandBlueDeep} />

@@ -1,7 +1,6 @@
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -13,6 +12,11 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../components/Icon";
 import { useLanguage } from "../i18n/LanguageContext";
+import {
+  fetchDeviceLocation,
+  hasValidCoords,
+  type DeviceLocation,
+} from "../location/deviceLocation";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -29,74 +33,73 @@ export function CaptureScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState(() => t("capture.locating"));
-  const locationRef = useRef({
+  const locationRef = useRef<DeviceLocation>({
     latitude: 0,
     longitude: 0,
     address: t("capture.locating"),
   });
+  const locatePromiseRef = useRef<Promise<DeviceLocation | null> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    async function loadLocation() {
-      try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          if (!cancelled) {
-            const msg = t("capture.permissionDenied");
-            setAddress(msg);
-            locationRef.current.address = msg;
-          }
-          return;
-        }
-        const pos = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        if (cancelled) return;
-        locationRef.current.latitude = pos.coords.latitude;
-        locationRef.current.longitude = pos.coords.longitude;
 
-        try {
-          const places = await Location.reverseGeocodeAsync({
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-          });
-          if (cancelled) return;
-          const p = places[0];
-          const label = p
-            ? [p.name, p.street, p.city, p.region].filter(Boolean).join(", ") ||
-              `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`
-            : `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-          setAddress(label);
-          locationRef.current.address = label;
-        } catch {
-          if (!cancelled) {
-            const label = `${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)}`;
-            setAddress(label);
-            locationRef.current.address = label;
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          const msg = t("capture.unableLocation");
-          setAddress(msg);
-          locationRef.current.address = msg;
-        }
+    locatePromiseRef.current = (async () => {
+      try {
+        const loc = await fetchDeviceLocation();
+        if (cancelled) return loc;
+        locationRef.current = loc;
+        setAddress(loc.address ?? t("capture.locating"));
+        return loc;
+      } catch (error) {
+        if (cancelled) return null;
+        const msg =
+          error instanceof Error && error.message === "permission_denied"
+            ? t("capture.permissionDenied")
+            : t("capture.unableLocation");
+        setAddress(msg);
+        locationRef.current = { latitude: 0, longitude: 0, address: msg };
+        return null;
       }
-    }
-    void loadLocation();
+    })();
+
     return () => {
       cancelled = true;
     };
   }, [t]);
 
-  function goToDetails(photoUri: string) {
-    const loc = locationRef.current;
+  async function ensureLocation(): Promise<DeviceLocation | null> {
+    if (hasValidCoords(locationRef.current.latitude, locationRef.current.longitude)) {
+      return locationRef.current;
+    }
+
+    const pending = await locatePromiseRef.current;
+    if (pending && hasValidCoords(pending.latitude, pending.longitude)) {
+      locationRef.current = pending;
+      return pending;
+    }
+
+    try {
+      const loc = await fetchDeviceLocation();
+      locationRef.current = loc;
+      setAddress(loc.address ?? t("capture.locating"));
+      return loc;
+    } catch {
+      return null;
+    }
+  }
+
+  function goToDetails(photoUri: string, loc: DeviceLocation) {
     navigation.replace("ReportDetails", {
       photoUri,
       latitude: loc.latitude,
       longitude: loc.longitude,
       address:
-        loc.address === t("capture.locating") ? undefined : loc.address,
+        loc.address &&
+        loc.address !== t("capture.locating") &&
+        loc.address !== t("capture.permissionDenied") &&
+        loc.address !== t("capture.unableLocation")
+          ? loc.address
+          : undefined,
       domain,
     });
   }
@@ -115,7 +118,8 @@ export function CaptureScreen() {
         allowsEditing: false,
       });
       if (!result.canceled && result.assets[0]?.uri) {
-        goToDetails(result.assets[0].uri);
+        const loc = (await ensureLocation()) ?? locationRef.current;
+        goToDetails(result.assets[0].uri, loc);
         return;
       }
     } finally {
@@ -139,7 +143,8 @@ export function CaptureScreen() {
         selectionLimit: 1,
       });
       if (!result.canceled && result.assets[0]?.uri) {
-        goToDetails(result.assets[0].uri);
+        const loc = (await ensureLocation()) ?? locationRef.current;
+        goToDetails(result.assets[0].uri, loc);
         return;
       }
     } finally {

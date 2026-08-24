@@ -24,6 +24,10 @@ import { Icon } from "../components/Icon";
 import type { IconName } from "../components/iconAssets";
 import { useLanguage } from "../i18n/LanguageContext";
 import type { TranslationKey } from "../i18n/translations";
+import {
+  fetchDeviceLocation,
+  hasValidCoords,
+} from "../location/deviceLocation";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, fonts } from "../theme/tokens";
 
@@ -103,6 +107,31 @@ export function ReportDetailsScreen() {
     route.params.address,
     route.params.domain,
   ]);
+
+  // If Capture raced ahead of GPS (0,0), resolve location on this screen.
+  useEffect(() => {
+    if (hasValidCoords(route.params.latitude, route.params.longitude)) {
+      return;
+    }
+    let cancelled = false;
+    setAddress(t("capture.locating"));
+    void (async () => {
+      try {
+        const loc = await fetchDeviceLocation();
+        if (cancelled) return;
+        setLatitude(loc.latitude);
+        setLongitude(loc.longitude);
+        setAddress(loc.address);
+      } catch {
+        if (!cancelled) {
+          setAddress(t("capture.unableLocation"));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route.params.latitude, route.params.longitude, t]);
 
   useEffect(() => {
     const event =

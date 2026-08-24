@@ -7,7 +7,12 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nivaran123.nivaran",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "Nivaran uses your location to tag challenges on the map."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +23,11 @@
       },
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
-      "package": "com.nivaran123.nivaran"
+      "package": "com.nivaran123.nivaran",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,6 +39,12 @@
           "backgroundColor": "#F9F9FF",
           "image": "./assets/splash-icon.png",
           "imageWidth": 200
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Nivaran to use your location to tag challenges."
         }
       ]
     ],
