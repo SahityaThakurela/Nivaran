@@ -26,7 +26,9 @@
       "package": "com.nivaran123.nivaran",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
@@ -50,8 +52,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "e6a95549-9e42-4f54-a991-c90185946ab4"
+        "projectId": "445bb76c-47ab-466f-97bd-2d79d261bb26"
       }
-    }
+    },
+    "owner": "sambhav-g"
   }
 }
