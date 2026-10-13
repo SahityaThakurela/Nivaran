@@ -41,37 +41,55 @@ authRouter.post("/register", async (req, res) => {
   if (email) orFilters.push({ email });
   if (phone) orFilters.push({ phone });
 
-  const existing = await prisma.user.findFirst({ where: { OR: orFilters } });
-  if (existing) {
-    return res.status(409).json({ error: "A user with this email or phone already exists" });
+  try {
+    const existing = await prisma.user.findFirst({ where: { OR: orFilters } });
+    if (existing) {
+      return res.status(409).json({ error: "A user with this email or phone already exists" });
+    }
+
+    // Validate cityId exists before inserting to give a clear error instead of a FK 500.
+    if (cityId) {
+      const city = await prisma.city.findUnique({ where: { id: cityId } });
+      if (!city) {
+        return res.status(400).json({ error: "Invalid cityId — city not found. Please update the app." });
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email: email ?? null,
+        phone: phone ?? null,
+        passwordHash,
+        role: role ?? "CITIZEN",
+        cityId: cityId ?? null,
+        universityId: universityId ?? null,
+      },
+    });
+
+    const token = signAuthToken({
+      sub: user.id,
+      role: user.role,
+      cityId: user.cityId,
+      universityId: user.universityId,
+    });
+
+    res.status(201).json({ token, user: toSafeUser(user) });
+  } catch (err: unknown) {
+    // Prisma foreign-key constraint violation (e.g. cityId doesn't exist in DB)
+    const code = (err as { code?: string })?.code;
+    if (code === "P2003") {
+      return res.status(400).json({ error: "Invalid cityId or universityId — referenced record not found." });
+    }
+    // Unique constraint (race condition — two registrations at the same time)
+    if (code === "P2002") {
+      return res.status(409).json({ error: "A user with this email or phone already exists" });
+    }
+    console.error("Register error:", err);
+    return res.status(500).json({ error: "Registration failed. Please try again." });
   }
-
-  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-
-  // NOTE: accepting role/cityId/universityId here is a temporary hackathon
-  // shortcut so every role can be tested via curl before RBAC exists. Once
-  // requireRole()/requireScope() land, move non-CITIZEN account creation
-  // behind a SUPER_ADMIN-only route instead of leaving it open here.
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email: email ?? null,
-      phone: phone ?? null,
-      passwordHash,
-      role: role ?? "CITIZEN",
-      cityId: cityId ?? null,
-      universityId: universityId ?? null,
-    },
-  });
-
-  const token = signAuthToken({
-    sub: user.id,
-    role: user.role,
-    cityId: user.cityId,
-    universityId: user.universityId,
-  });
-
-  res.status(201).json({ token, user: toSafeUser(user) });
 });
 
 authRouter.post("/login", async (req, res) => {
@@ -81,28 +99,34 @@ authRouter.post("/login", async (req, res) => {
     return res.status(400).json({ error: "email or phone, and password are required" });
   }
 
-  const user = await prisma.user.findFirst({
-    where: email ? { email } : { phone },
-  });
+  try {
+    const user = await prisma.user.findFirst({
+      where: email ? { email } : { phone },
+    });
 
-  if (!user || !user.passwordHash) {
-    return res.status(401).json({ error: "Invalid credentials" });
+    if (!user || !user.passwordHash) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    const token = signAuthToken({
+      sub: user.id,
+      role: user.role,
+      cityId: user.cityId,
+      universityId: user.universityId,
+    });
+
+    res.json({ token, user: toSafeUser(user) });
+  } catch (err: unknown) {
+    console.error("Login error:", err);
+    return res.status(500).json({ error: "Login failed. Please try again." });
   }
-
-  const passwordMatches = await bcrypt.compare(password, user.passwordHash);
-  if (!passwordMatches) {
-    return res.status(401).json({ error: "Invalid credentials" });
-  }
-
-  const token = signAuthToken({
-    sub: user.id,
-    role: user.role,
-    cityId: user.cityId,
-    universityId: user.universityId,
-  });
-
-  res.json({ token, user: toSafeUser(user) });
 });
+
 
 // Staff directory for the dashboard's Admin Management page. requireScope()
 // keeps this consistent with every other route: a government admin only
