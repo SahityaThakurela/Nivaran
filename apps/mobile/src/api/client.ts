@@ -55,8 +55,8 @@ export async function apiClient<T>(
   if (!response.ok) {
     const errorField =
       payload !== null &&
-      typeof payload === "object" &&
-      "error" in payload
+        typeof payload === "object" &&
+        "error" in payload
         ? (payload as ErrorPayload).error
         : undefined;
     const message =

@@ -37,9 +37,9 @@ export async function uploadIssuePhoto(
   if (!response.ok) {
     const message =
       payload !== null &&
-      typeof payload === "object" &&
-      "error" in payload &&
-      typeof (payload as { error: unknown }).error === "string"
+        typeof payload === "object" &&
+        "error" in payload &&
+        typeof (payload as { error: unknown }).error === "string"
         ? (payload as { error: string }).error
         : `Photo upload failed (${response.status})`;
     throw new Error(message);
