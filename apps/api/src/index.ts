@@ -56,6 +56,23 @@ app.use("/api/cities", cityRouter);
 // default HTML error page.
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("Unhandled error:", error);
+  const code = (error as { code?: string })?.code;
+  const name = (error as { name?: string })?.name;
+  const msg = (error as { message?: string })?.message ?? "";
+
+  if (
+    code === "P1000" ||
+    code === "P1001" ||
+    name === "PrismaClientInitializationError" ||
+    msg.includes("tenant") ||
+    msg.includes("Can't reach database") ||
+    msg.includes("ENOTFOUND")
+  ) {
+    return res.status(503).json({
+      error: "Database is currently unreachable. Please ensure the database server is running or unpaused in Supabase.",
+    });
+  }
+
   res.status(500).json({ error: "Internal server error" });
 });
 

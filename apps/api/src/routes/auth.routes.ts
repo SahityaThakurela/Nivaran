@@ -47,12 +47,24 @@ authRouter.post("/register", async (req, res) => {
       return res.status(409).json({ error: "A user with this email or phone already exists" });
     }
 
-    // Validate cityId exists before inserting to give a clear error instead of a FK 500.
+    // Gracefully handle cityId: if provided cityId exists, use it.
+    // If not found in DB (e.g. older mobile build or seed mismatch), fall back to first city or null
+    // rather than failing registration or causing a foreign key violation.
+    let resolvedCityId: string | null = null;
     if (cityId) {
       const city = await prisma.city.findUnique({ where: { id: cityId } });
-      if (!city) {
-        return res.status(400).json({ error: "Invalid cityId — city not found. Please update the app." });
+      if (city) {
+        resolvedCityId = city.id;
+      } else {
+        const fallbackCity = await prisma.city.findFirst();
+        resolvedCityId = fallbackCity?.id ?? null;
       }
+    }
+
+    let resolvedUniversityId: string | null = null;
+    if (universityId) {
+      const uni = await prisma.university.findUnique({ where: { id: universityId } });
+      resolvedUniversityId = uni?.id ?? null;
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
@@ -64,8 +76,8 @@ authRouter.post("/register", async (req, res) => {
         phone: phone ?? null,
         passwordHash,
         role: role ?? "CITIZEN",
-        cityId: cityId ?? null,
-        universityId: universityId ?? null,
+        cityId: resolvedCityId,
+        universityId: resolvedUniversityId,
       },
     });
 
@@ -78,15 +90,33 @@ authRouter.post("/register", async (req, res) => {
 
     res.status(201).json({ token, user: toSafeUser(user) });
   } catch (err: unknown) {
-    // Prisma foreign-key constraint violation (e.g. cityId doesn't exist in DB)
     const code = (err as { code?: string })?.code;
+    const name = (err as { name?: string })?.name;
+    const msg = (err as { message?: string })?.message ?? "";
+
+    // Prisma foreign-key constraint violation
     if (code === "P2003") {
-      return res.status(400).json({ error: "Invalid cityId or universityId — referenced record not found." });
+      return res.status(400).json({ error: "Invalid city or university reference." });
     }
-    // Unique constraint (race condition — two registrations at the same time)
+    // Unique constraint violation (duplicate user)
     if (code === "P2002") {
       return res.status(409).json({ error: "A user with this email or phone already exists" });
     }
+    // Database connection / initialization failures (paused Supabase, unreachable DB)
+    if (
+      code === "P1000" ||
+      code === "P1001" ||
+      name === "PrismaClientInitializationError" ||
+      msg.includes("tenant") ||
+      msg.includes("Can't reach database") ||
+      msg.includes("ENOTFOUND")
+    ) {
+      console.error("Database connection error during registration:", err);
+      return res.status(503).json({
+        error: "Database is currently unreachable. Please ensure the database server is running or unpaused in Supabase.",
+      });
+    }
+
     console.error("Register error:", err);
     return res.status(500).json({ error: "Registration failed. Please try again." });
   }
@@ -122,6 +152,24 @@ authRouter.post("/login", async (req, res) => {
 
     res.json({ token, user: toSafeUser(user) });
   } catch (err: unknown) {
+    const code = (err as { code?: string })?.code;
+    const name = (err as { name?: string })?.name;
+    const msg = (err as { message?: string })?.message ?? "";
+
+    if (
+      code === "P1000" ||
+      code === "P1001" ||
+      name === "PrismaClientInitializationError" ||
+      msg.includes("tenant") ||
+      msg.includes("Can't reach database") ||
+      msg.includes("ENOTFOUND")
+    ) {
+      console.error("Database connection error during login:", err);
+      return res.status(503).json({
+        error: "Database is currently unreachable. Please ensure the database server is running or unpaused in Supabase.",
+      });
+    }
+
     console.error("Login error:", err);
     return res.status(500).json({ error: "Login failed. Please try again." });
   }
