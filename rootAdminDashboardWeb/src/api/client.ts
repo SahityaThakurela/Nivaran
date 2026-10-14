@@ -39,6 +39,14 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     payload = null;
   }
 
+  if (response.status === 401) {
+    localStorage.removeItem('nivaran_token');
+    localStorage.removeItem('nivaran_user');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+  }
+
   if (!response.ok) {
     const msg =
       payload !== null &&

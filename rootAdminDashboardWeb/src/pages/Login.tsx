@@ -136,7 +136,27 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="text-xs text-gray-400 text-center mt-8">
+          {/* Quick Demo Credentials */}
+          <div className="mt-6 p-3.5 bg-blue-50/70 border border-blue-100 rounded-xl">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-blue-900">Demo Admin Account</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('dashboard.admin@test.local');
+                  setPassword('Admin@123');
+                }}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline underline-offset-2"
+              >
+                Auto-fill
+              </button>
+            </div>
+            <p className="text-[11px] text-blue-700/80 font-mono">
+              dashboard.admin@test.local · Admin@123
+            </p>
+          </div>
+
+          <p className="text-xs text-gray-400 text-center mt-6">
             Nivaran Societal Innovation Platform · Govt. of Jharkhand
           </p>
         </div>
